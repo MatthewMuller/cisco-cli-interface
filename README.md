@@ -165,6 +165,27 @@ The modular design makes it easy to add new features:
 2. **UI improvements** - Modify `ui.c`
 3. **File operations** - Extend `file_tree.c`
 
+### Branching Strategy
+
+This project follows a structured branching strategy for organized development:
+
+#### Branch Types
+- `feat/description` - A new feature
+- `fix/description` - A bug fix
+- `docs/description` - Documentation only changes
+- `build/description` - Changes that affect the build system or external dependencies
+- `ci/description` - Changes to our CI configuration files and scripts
+- `perf/description` - A code change that improves performance
+- `refactor/description` - A code change that neither fixes a bug nor adds a feature
+- `style/description` - Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+- `test/description` - Adding missing tests or correcting existing tests
+
+#### Workflow
+1. Create feature branch from `main`
+2. Make changes with conventional commit messages
+3. Submit pull request to `main`
+5. Feature branche merged to `main` for production releases
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.

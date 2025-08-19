@@ -1,9 +1,9 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -g
+CFLAGS = -Wall -Wextra -std=c99 -g -Iinclude
 LIBS = -lncurses -lpthread
-TARGET = cisco-cli-interface
-SOURCES = main.c serial.c ui.c cisco_commands.c file_tree.c
-OBJECTS = $(SOURCES:.c=.o)
+TARGET = build/cisco-cli-interface
+SOURCES = src/main.c src/serial.c src/ui.c src/cisco_commands.c src/file_tree.c
+OBJECTS = $(SOURCES:src/%.c=build/%.o)
 
 .PHONY: all clean
 
@@ -12,11 +12,13 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(TARGET) $(LIBS)
 
-%.o: %.c
+build/%.o: src/%.c
+	@mkdir -p build
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(OBJECTS) $(TARGET)
+	rm -rf build
 
 install-deps:
 	sudo apt-get update

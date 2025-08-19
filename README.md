@@ -19,7 +19,49 @@ A C application that provides an interactive interface to manage files and direc
 - ncurses development library
 - Serial port access (USB-to-serial adapter or built-in serial port)
 
-## Installation
+## Installation Options
+
+### Option 1: Docker Development Environment (Recommended)
+
+This approach provides an isolated development environment without installing dependencies on your system.
+
+**Prerequisites:**
+- Docker and Docker Compose installed
+
+**Setup:**
+```bash
+# Clone the repository
+git clone <repository-url>
+cd cisco-cli-interface
+
+# Build the development environment
+./scripts/dev-setup.sh build
+
+# Start development shell
+./scripts/dev-setup.sh shell
+```
+
+**Development Workflow:**
+```bash
+# Build the application in container
+./scripts/dev-setup.sh compile
+
+# Run tests
+./scripts/dev-setup.sh test
+
+# Clean up when done
+./scripts/dev-setup.sh clean
+```
+
+**Benefits:**
+- ✅ No system dependencies installed
+- ✅ Consistent environment across team members
+- ✅ Easy to clean up and recreate
+- ✅ Perfect for CI/CD integration
+
+### Option 2: Traditional Installation
+
+Install dependencies directly on your system.
 
 1. **Install dependencies:**
    ```bash
@@ -39,6 +81,16 @@ A C application that provides an interactive interface to manage files and direc
    sudo usermod -a -G dialout $USER
    # Log out and back in for changes to take effect
    ```
+
+### Option 3: Automated Installation Script
+
+Use the provided installation script for a guided setup.
+
+```bash
+git clone <repository-url>
+cd cisco-cli-interface
+./scripts/install.sh
+```
 
 ## Usage
 

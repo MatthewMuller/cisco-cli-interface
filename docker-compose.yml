@@ -1,0 +1,12 @@
+services:
+  cisco-cli-dev:
+    build: .
+    volumes:
+      - /dev:/dev  # Mount serial devices
+    devices:
+      - /dev:/dev  # Access to serial ports
+    environment:
+      - TERM=xterm-256color
+    stdin_open: true
+    tty: true
+    command: /bin/bash

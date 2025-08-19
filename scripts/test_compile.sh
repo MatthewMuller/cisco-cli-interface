@@ -15,7 +15,7 @@ fi
 
 # Test binary exists
 echo "2. Testing binary creation..."
-if [ -f "./cisco-cli-interface" ]; then
+if [ -f "./build/cisco-cli-interface" ]; then
     echo "   ✓ Binary created successfully"
 else
     echo "   ✗ Binary not found"
@@ -24,7 +24,7 @@ fi
 
 # Test usage
 echo "3. Testing usage display..."
-./cisco-cli-interface 2>&1 | grep -q "Usage:"
+./build/cisco-cli-interface 2>&1 | grep -q "Usage:"
 if [ $? -eq 0 ]; then
     echo "   ✓ Usage display works"
 else
@@ -38,4 +38,4 @@ echo "✓ Binary is created"
 echo "✓ Usage information is displayed"
 echo
 echo "The application is ready to use!"
-echo "Example: ./cisco-cli-interface /dev/ttyUSB0" 
+echo "Example: ./build/cisco-cli-interface /dev/ttyUSB0" 

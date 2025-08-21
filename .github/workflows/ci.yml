@@ -26,7 +26,7 @@ jobs:
         
     - name: Run tests
       run: |
-        ./scripts/test_compile.sh
+        ./tests/integration/test_compile.sh
         
     - name: Check build artifacts
       run: |

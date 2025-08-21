@@ -83,7 +83,7 @@ build_app() {
 # Run tests in container
 run_tests() {
     print_status "Running tests in container..."
-    $DOCKER_COMPOSE_CMD run --rm cisco-cli-dev ./scripts/test_compile.sh
+    $DOCKER_COMPOSE_CMD run --rm cisco-cli-dev bash -c "cd /app && make test && ./build/test-runner"
 }
 
 # Clean up containers and images

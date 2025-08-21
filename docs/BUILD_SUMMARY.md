@@ -17,7 +17,7 @@ I have successfully built a complete C application that interfaces with Cisco sw
 ### Build System
 - **`Makefile`** - Compilation configuration with proper dependencies
 - **`install.sh`** - Automated installation script
-- **`test_compile.sh`** - Test script to verify compilation
+- **`tests/integration/test_compile.sh`** - Test script to verify compilation
 
 ### Documentation
 - **`README.md`** - Comprehensive user guide and documentation

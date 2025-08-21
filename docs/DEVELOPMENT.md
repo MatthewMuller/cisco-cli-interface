@@ -56,7 +56,7 @@ make clean && make
 #### Workflow
 1. **Edit code** directly
 2. **Build** with `make`
-3. **Test** with `./scripts/test_compile.sh`
+3. **Test** with `./tests/integration/test_compile.sh`
 
 #### Benefits
 - ✅ **Faster builds** - No container overhead
@@ -108,12 +108,12 @@ The project requires:
 ## Testing
 
 ### Test Scripts
-- `./scripts/test_compile.sh` - Basic compilation tests
+- `./tests/integration/test_compile.sh` - Basic compilation tests
 - `./scripts/dev-setup.sh test` - Run tests in Docker environment
 
 ### Adding Tests
 1. Create test files in `tests/` directory
-2. Add test compilation to `scripts/test_compile.sh`
+2. Add test compilation to `tests/integration/test_compile.sh`
 3. Consider adding unit test framework (e.g., Unity, CUnit)
 
 ## Code Style

@@ -6,7 +6,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
-#include "cisco_cli.h"
+#include "../../include/cisco_cli.h"
 
 // Test framework colors
 #define TEST_COLOR_RED     "\033[31m"

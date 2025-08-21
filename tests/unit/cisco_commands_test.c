@@ -1,5 +1,5 @@
-#include "cisco_cli.h"
-#include "test_framework.h"
+#include "../../include/cisco_cli.h"
+#include "../framework/test_framework.h"
 
 // Define mock functions to override real serial functions
 #define serial_write mock_serial_write

@@ -1,4 +1,4 @@
-#include "test_framework.h"
+#include "../framework/test_framework.h"
 
 int main(int argc, char *argv[]) {
     (void)argc; // Unused parameter

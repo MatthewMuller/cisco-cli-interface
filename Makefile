@@ -4,9 +4,9 @@ LIBS = -lncurses -lpthread
 TARGET = build/cisco-cli-interface
 TEST_TARGET = build/test-runner
 SOURCES = src/main.c src/serial.c src/ui.c src/cisco_commands.c src/file_tree.c
-TEST_SOURCES = src/test_runner.c src/test_framework.c src/cisco_commands_test.c
+TEST_SOURCES = tests/unit/test_runner.c tests/framework/test_framework.c tests/unit/cisco_commands_test.c
 OBJECTS = $(SOURCES:src/%.c=build/%.o)
-TEST_OBJECTS = $(TEST_SOURCES:src/%.c=build/%.o)
+TEST_OBJECTS = $(TEST_SOURCES:tests/%.c=build/tests/%.o)
 
 .PHONY: all clean test
 
@@ -22,6 +22,10 @@ $(TEST_TARGET): $(TEST_OBJECTS)
 
 build/%.o: src/%.c
 	@mkdir -p build
+	$(CC) $(CFLAGS) -c $< -o $@
+
+build/tests/%.o: tests/%.c
+	@mkdir -p build/tests/unit build/tests/framework
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:

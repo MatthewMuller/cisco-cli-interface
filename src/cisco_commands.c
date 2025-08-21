@@ -119,9 +119,35 @@ int cisco_get_directory_listing(serial_conn_t *conn, const char *path, file_entr
             
             // Build full path
             if (strcmp(path, "flash:/") == 0) {
-                snprintf(file->full_path, MAX_PATH_LEN, "flash:/%s", filename);
+                // For flash:/ paths, we know the prefix is exactly 7 characters
+                size_t filename_len = strlen(filename);
+                if (filename_len > MAX_PATH_LEN - 8) { // 8 = strlen("flash:/") + 1 for null terminator
+                    // Truncate filename to fit
+                    strncpy(file->full_path, "flash:/", MAX_PATH_LEN - 1);
+                    strncat(file->full_path, filename, MAX_PATH_LEN - 8);
+                    file->full_path[MAX_PATH_LEN - 1] = '\0';
+                } else {
+                    // Use strcpy and strcat instead of snprintf to avoid truncation warnings
+                    strcpy(file->full_path, "flash:/");
+                    strcat(file->full_path, filename);
+                }
             } else {
-                snprintf(file->full_path, MAX_PATH_LEN, "%s/%s", path, filename);
+                // Check if path + filename combination is too long
+                size_t path_len = strlen(path);
+                size_t filename_len = strlen(filename);
+                if (path_len + filename_len + 2 > MAX_PATH_LEN) { // +2 for "/" and null terminator
+                    // Truncate to fit
+                    strncpy(file->full_path, path, MAX_PATH_LEN - 1);
+                    file->full_path[MAX_PATH_LEN - 1] = '\0';
+                    strncat(file->full_path, "/", MAX_PATH_LEN - strlen(file->full_path) - 1);
+                    strncat(file->full_path, filename, MAX_PATH_LEN - strlen(file->full_path) - 1);
+                    file->full_path[MAX_PATH_LEN - 1] = '\0';
+                } else {
+                    // Use strcpy and strcat instead of snprintf to avoid truncation warnings
+                    strcpy(file->full_path, path);
+                    strcat(file->full_path, "/");
+                    strcat(file->full_path, filename);
+                }
             }
             
             // Determine file type based on permissions and name

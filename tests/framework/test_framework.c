@@ -1,6 +1,7 @@
 #include "test_framework.h"
 #include <unistd.h>
 #include <sys/time.h>
+#include <ctype.h>
 
 // Utility functions needed for testing
 void trim_whitespace(char *str) {
@@ -74,6 +75,34 @@ void mock_serial_set_read_data(const char *data) {
     mock_serial.read_data_pos = 0;
 }
 
+// Add a function to append data for multiple read operations
+void mock_serial_append_read_data(const char *data) {
+    if (!data) return;
+    
+    int new_len = strlen(data);
+    if (mock_serial.read_data) {
+        // Reallocate to accommodate new data
+        int old_len = mock_serial.read_data_len;
+        char *new_data = malloc(old_len + new_len + 1);
+        if (!new_data) return;
+        
+        memcpy(new_data, mock_serial.read_data, old_len);
+        memcpy(new_data + old_len, data, new_len);
+        new_data[old_len + new_len] = '\0';
+        
+        free(mock_serial.read_data);
+        mock_serial.read_data = new_data;
+        mock_serial.read_data_len = old_len + new_len;
+    } else {
+        // First data
+        mock_serial.read_data_len = new_len;
+        mock_serial.read_data = malloc(new_len + 1);
+        if (mock_serial.read_data) {
+            strcpy(mock_serial.read_data, data);
+        }
+    }
+}
+
 void mock_serial_set_expected_write(const char *data) {
     if (data) {
         strncpy(mock_serial.expected_write, data, sizeof(mock_serial.expected_write) - 1);
@@ -129,7 +158,7 @@ int mock_serial_read_until(serial_conn_t *conn, char *buffer, int max_len, const
     (void)conn; // Unused parameter
     
     if (mock_serial.timeout_occurred) {
-        usleep(100000); // Simulate delay
+        sleep(1); // Simulate delay (use sleep instead of usleep to avoid include issues)
         return -1; // Timeout
     }
     
@@ -253,18 +282,24 @@ void test_cisco_get_directory_listing_success(void) {
     file_entry_t *files = NULL;
     mock_serial_reset();
     
-    // First read: command response with directory listing
+    // Set up mock data for the sequence of operations:
+    // 1. cisco_send_command calls cisco_wait_for_prompt which looks for ": "
+    // 2. cisco_get_directory_listing calls serial_read_until to get the directory listing
+    
+    // Data for the first read (cisco_wait_for_prompt)
+    const char *prompt_data = "Command output\nRouter# : ";
+    
+    // Data for the second read (serial_read_until in cisco_get_directory_listing)
+    // Note: The sscanf format expects: "%d %s %d %*s %*s %*s %*s %*s %[^\n]"
+    // So we need: number permissions size date_parts filename
     const char *dir_output = 
         "Directory of flash:/\n"
         "2  -rwx  1429      Jan 01 2020 00:00:00  test.txt\n"
         "3  drwx  0         Jan 01 2020 00:00:00  config\n";
     
-    // Second read: prompt after directory listing
-    const char *prompt_output = "Router# : ";
-    
-    // Set up mock to return directory listing first, then prompt
+    // Combine all the data
     char combined_output[2048];
-    snprintf(combined_output, sizeof(combined_output), "%s%s", dir_output, prompt_output);
+    snprintf(combined_output, sizeof(combined_output), "%s%s", prompt_data, dir_output);
     mock_serial_set_read_data(combined_output);
     mock_serial_set_expected_write("dir flash:/\n");
     
@@ -295,12 +330,18 @@ void test_cisco_get_directory_listing_empty(void) {
     file_entry_t *files = NULL;
     mock_serial_reset();
     
+    // Data for the first read (cisco_wait_for_prompt)
+    const char *prompt_data = "Command output\nRouter# : ";
+    
+    // Data for the second read (serial_read_until in cisco_get_directory_listing)
     const char *dir_output = 
         "Directory of flash:/\n"
-        "No files found\n"
-        "Router# : ";
+        "No files found\n";
     
-    mock_serial_set_read_data(dir_output);
+    // Combine all the data
+    char combined_output[2048];
+    snprintf(combined_output, sizeof(combined_output), "%s%s", prompt_data, dir_output);
+    mock_serial_set_read_data(combined_output);
     mock_serial_set_expected_write("dir flash:/\n");
     
     int result = cisco_get_directory_listing(&conn, "flash:/", &files);
@@ -316,15 +357,24 @@ void test_cisco_delete_file_success(void) {
     serial_conn_t conn = {0};
     mock_serial_reset();
     
-    // First read: confirmation prompt
+    // Data for the sequence of operations:
+    // 1. cisco_send_command calls cisco_wait_for_prompt
+    // 2. cisco_delete_file reads confirmation prompt
+    // 3. cisco_delete_file sends "y\n" confirmation
+    // 4. cisco_delete_file reads success message
+    
+    // Data for the first read (cisco_wait_for_prompt)
+    const char *prompt_data = "Command output\nRouter# : ";
+    
+    // Data for the second read (confirmation prompt)
     const char *confirm_output = "Are you sure you want to delete 'test.txt'? [confirm] ";
     
-    // Second read: success message
+    // Data for the third read (success message)
     const char *success_output = "Deleted file 'test.txt'\nRouter# : ";
     
-    // Combine the outputs
+    // Combine all the data
     char combined_output[2048];
-    snprintf(combined_output, sizeof(combined_output), "%s%s", confirm_output, success_output);
+    snprintf(combined_output, sizeof(combined_output), "%s%s%s", prompt_data, confirm_output, success_output);
     mock_serial_set_read_data(combined_output);
     mock_serial_set_expected_write("delete test.txt\n");
     
@@ -359,15 +409,24 @@ void test_cisco_delete_directory_success(void) {
     serial_conn_t conn = {0};
     mock_serial_reset();
     
-    // First read: confirmation prompt
+    // Data for the sequence of operations:
+    // 1. cisco_send_command calls cisco_wait_for_prompt
+    // 2. cisco_delete_directory reads confirmation prompt
+    // 3. cisco_delete_directory sends "y\n" confirmation
+    // 4. cisco_delete_directory reads success message
+    
+    // Data for the first read (cisco_wait_for_prompt)
+    const char *prompt_data = "Command output\nRouter# : ";
+    
+    // Data for the second read (confirmation prompt)
     const char *confirm_output = "Are you sure you want to delete 'test_dir'? [confirm] ";
     
-    // Second read: success message
+    // Data for the third read (success message)
     const char *success_output = "Directory 'test_dir' removed\nRouter# : ";
     
-    // Combine the outputs
+    // Combine all the data
     char combined_output[2048];
-    snprintf(combined_output, sizeof(combined_output), "%s%s", confirm_output, success_output);
+    snprintf(combined_output, sizeof(combined_output), "%s%s%s", prompt_data, confirm_output, success_output);
     mock_serial_set_read_data(combined_output);
     mock_serial_set_expected_write("rmdir test_dir\n");
     

@@ -218,8 +218,8 @@ void ui_draw_selection_view(app_state_t *app) {
 
 void ui_draw_status(app_state_t *app, const char *message) {
     (void)app; // Suppress unused parameter warning
-    int max_y, max_x;
-    getmaxyx(stdscr, max_y, max_x);
+    int max_y;
+    getmaxyx(stdscr, max_y, (int){0}); // Use compound literal to avoid unused variable
     
     attron(COLOR_PAIR(5));
     mvprintw(max_y - 2, 1, "Status: %s", message);

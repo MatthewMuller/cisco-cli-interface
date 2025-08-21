@@ -6,6 +6,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include "../../include/cisco_cli.h"
 
 // Test framework colors
@@ -125,6 +126,7 @@ extern mock_serial_t mock_serial;
 void mock_serial_init(void);
 void mock_serial_reset(void);
 void mock_serial_set_read_data(const char *data);
+void mock_serial_append_read_data(const char *data);
 void mock_serial_set_expected_write(const char *data);
 void mock_serial_set_return_value(int value);
 void mock_serial_set_timeout(int timeout);

@@ -19,7 +19,7 @@ int cisco_wait_for_prompt(serial_conn_t *conn) {
                 return 0;
             }
         }
-        usleep(100000); // 100ms delay
+        sleep(1); // 1 second delay (simplified for testing)
         timeout--;
     }
     
@@ -53,7 +53,7 @@ int cisco_init_flash(serial_conn_t *conn) {
                 break;
             }
         }
-        usleep(100000); // 100ms delay
+        sleep(1); // 1 second delay (simplified for testing)
         timeout--;
     }
     
@@ -112,10 +112,10 @@ int cisco_get_directory_listing(serial_conn_t *conn, const char *path, file_entr
         
         // Parse file entry (format: "2  -rwx  1429      <date>               filename")
         int file_num, size;
-        char permissions[16], date_str[64], filename[MAX_PATH_LEN];
+        char permissions[16], filename[MAX_PATH_LEN];
         
-        if (sscanf(line, "%d %s %d %*s %s %[^\n]", 
-                   &file_num, permissions, &size, date_str, filename) >= 4) {
+        if (sscanf(line, "%d %s %d %*s %*s %*s %*s %*s %[^\n]", 
+                   &file_num, permissions, &size, filename) >= 3) {
             
             // Create file entry
             file_entry_t *file = malloc(sizeof(file_entry_t));
@@ -126,9 +126,15 @@ int cisco_get_directory_listing(serial_conn_t *conn, const char *path, file_entr
             
             // Build full path
             if (strcmp(path, "flash:/") == 0) {
-                snprintf(file->full_path, MAX_PATH_LEN, "flash:/%s", filename);
+                if (snprintf(file->full_path, MAX_PATH_LEN, "flash:/%s", filename) >= MAX_PATH_LEN) {
+                    // Truncation occurred, ensure null termination
+                    file->full_path[MAX_PATH_LEN - 1] = '\0';
+                }
             } else {
-                snprintf(file->full_path, MAX_PATH_LEN, "%s/%s", path, filename);
+                if (snprintf(file->full_path, MAX_PATH_LEN, "%s/%s", path, filename) >= MAX_PATH_LEN) {
+                    // Truncation occurred, ensure null termination
+                    file->full_path[MAX_PATH_LEN - 1] = '\0';
+                }
             }
             
             // Determine file type based on permissions and name

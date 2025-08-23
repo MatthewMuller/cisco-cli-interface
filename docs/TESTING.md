@@ -55,7 +55,7 @@ void test_function_name_scenario(void) {
     mock_serial_set_expected_write("expected command\n");
     
     // Execute function under test
-    int result = cisco_send_command(&conn, "test_command");
+    int result = cisco_send_command(&conn, "test_command", 30);
     
     // Assertions
     TEST_ASSERT_EQ(0, result);
@@ -129,7 +129,7 @@ void test_cisco_send_command_success(void) {
     mock_serial_set_read_data("Command output\nRouter# : ");
     mock_serial_set_expected_write("test_command\n");
     
-    int result = cisco_send_command(&conn, "test_command");
+    int result = cisco_send_command(&conn, "test_command", 30);
     
     TEST_ASSERT_EQ(0, result);
     TEST_ASSERT_EQ(1, mock_serial.write_called);
@@ -147,7 +147,7 @@ void test_cisco_send_command_failure(void) {
     mock_serial_reset();
     mock_serial_set_return_value(-1); // Simulate write failure
     
-    int result = cisco_send_command(&conn, "test_command");
+    int result = cisco_send_command(&conn, "test_command", 30);
     
     TEST_ASSERT_EQ(-1, result);
     TEST_PASS();
@@ -165,7 +165,7 @@ void test_cisco_wait_for_prompt_timeout(void) {
     mock_serial_set_timeout(1);
     mock_serial_set_read_data("Some output without prompt\n");
     
-    int result = cisco_wait_for_prompt(&conn);
+    int result = cisco_wait_for_prompt(&conn, 30);
     
     TEST_ASSERT_EQ(-1, result);
     TEST_PASS();
@@ -191,7 +191,7 @@ void test_cisco_get_directory_listing_success(void) {
     mock_serial_set_read_data(dir_output);
     mock_serial_set_expected_write("dir flash:/\n");
     
-    int result = cisco_get_directory_listing(&conn, "flash:/", &files);
+    int result = cisco_get_directory_listing(&conn, "flash:/", &files, 30);
     
     TEST_ASSERT_EQ(2, result);
     TEST_ASSERT_NOT_NULL(files);

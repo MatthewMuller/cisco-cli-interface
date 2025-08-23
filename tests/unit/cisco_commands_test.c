@@ -1,15 +1,17 @@
 #include "../../include/cisco_cli.h"
 #include "../framework/test_framework.h"
 
+// Define 1-second timeout for fast unit tests
+#define TEST_TIMEOUT 1
+
 // Define mock functions to override real serial functions
 #define serial_write mock_serial_write
 #define serial_read mock_serial_read
 #define serial_read_until mock_serial_read_until
 
 // Include the original cisco_commands.c content with mock overrides
-int cisco_wait_for_prompt(serial_conn_t *conn) {
+int cisco_wait_for_prompt(serial_conn_t *conn, int timeout) {
     char buffer[MAX_LINE_LEN];
-    int timeout = 30; // 30 seconds timeout
     
     while (timeout > 0) {
         int bytes_read = serial_read_until(conn, buffer, sizeof(buffer), "\n");
@@ -19,14 +21,14 @@ int cisco_wait_for_prompt(serial_conn_t *conn) {
                 return 0;
             }
         }
-        sleep(1); // 1 second delay (simplified for testing)
+        // No sleep for unit tests to keep them fast
         timeout--;
     }
     
     return -1; // Timeout
 }
 
-int cisco_send_command(serial_conn_t *conn, const char *command) {
+int cisco_send_command(serial_conn_t *conn, const char *command, int timeout) {
     char cmd_buffer[MAX_LINE_LEN];
     
     // Format command with newline
@@ -38,12 +40,11 @@ int cisco_send_command(serial_conn_t *conn, const char *command) {
     }
     
     // Wait for response and prompt
-    return cisco_wait_for_prompt(conn);
+    return cisco_wait_for_prompt(conn, timeout);
 }
 
-int cisco_init_flash(serial_conn_t *conn) {
+int cisco_init_flash(serial_conn_t *conn, int timeout) {
     char buffer[MAX_LINE_LEN];
-    int timeout = 60; // 60 seconds timeout for flash init
     
     // Wait for the flash_init prompt
     while (timeout > 0) {
@@ -53,7 +54,7 @@ int cisco_init_flash(serial_conn_t *conn) {
                 break;
             }
         }
-        sleep(1); // 1 second delay (simplified for testing)
+        // No sleep for unit tests to keep them fast
         timeout--;
     }
     
@@ -62,14 +63,14 @@ int cisco_init_flash(serial_conn_t *conn) {
     }
     
     // Send flash_init command
-    if (cisco_send_command(conn, "flash_init") < 0) {
+    if (cisco_send_command(conn, "flash_init", TEST_TIMEOUT) < 0) {
         return -1;
     }
     
     return 0;
 }
 
-int cisco_get_directory_listing(serial_conn_t *conn, const char *path, file_entry_t **files) {
+int cisco_get_directory_listing(serial_conn_t *conn, const char *path, file_entry_t **files, int timeout) {
     char command[MAX_LINE_LEN];
     char buffer[MAX_LINE_LEN * 10]; // Large buffer for directory listing
     char *line, *saveptr;
@@ -83,7 +84,7 @@ int cisco_get_directory_listing(serial_conn_t *conn, const char *path, file_entr
     }
     
     // Send command
-    if (cisco_send_command(conn, command) < 0) {
+    if (cisco_send_command(conn, command, timeout) < 0) {
         return -1;
     }
     
@@ -166,7 +167,7 @@ int cisco_get_directory_listing(serial_conn_t *conn, const char *path, file_entr
     return file_count;
 }
 
-int cisco_delete_file(serial_conn_t *conn, const char *file_path) {
+int cisco_delete_file(serial_conn_t *conn, const char *file_path, int timeout) {
     char command[MAX_LINE_LEN];
     char buffer[MAX_LINE_LEN];
     
@@ -174,7 +175,7 @@ int cisco_delete_file(serial_conn_t *conn, const char *file_path) {
     snprintf(command, sizeof(command), "delete %s", file_path);
     
     // Send delete command
-    if (cisco_send_command(conn, command) < 0) {
+    if (cisco_send_command(conn, command, timeout) < 0) {
         return -1;
     }
     
@@ -200,7 +201,7 @@ int cisco_delete_file(serial_conn_t *conn, const char *file_path) {
     return -1;
 }
 
-int cisco_delete_directory(serial_conn_t *conn, const char *dir_path) {
+int cisco_delete_directory(serial_conn_t *conn, const char *dir_path, int timeout) {
     char command[MAX_LINE_LEN];
     char buffer[MAX_LINE_LEN];
     
@@ -208,7 +209,7 @@ int cisco_delete_directory(serial_conn_t *conn, const char *dir_path) {
     snprintf(command, sizeof(command), "rmdir %s", dir_path);
     
     // Send rmdir command
-    if (cisco_send_command(conn, command) < 0) {
+    if (cisco_send_command(conn, command, timeout) < 0) {
         return -1;
     }
     

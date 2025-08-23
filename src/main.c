@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
     
     // Wait for switch to boot and initialize flash
     printf("Waiting for switch to boot and initialize flash...\n");
-    if (cisco_init_flash(&app.serial) < 0) {
+    if (cisco_init_flash(&app.serial, 60) < 0) {
         ui_cleanup();
         serial_close(&app.serial);
         printf("Failed to initialize flash on switch\n");

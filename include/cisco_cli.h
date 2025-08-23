@@ -105,12 +105,12 @@ void serial_set_debug(serial_conn_t *conn, int enabled);
 void serial_close(serial_conn_t *conn);
 
 // Cisco commands
-int cisco_wait_for_prompt(serial_conn_t *conn);
-int cisco_send_command(serial_conn_t *conn, const char *command);
-int cisco_init_flash(serial_conn_t *conn);
-int cisco_get_directory_listing(serial_conn_t *conn, const char *path, file_entry_t **files);
-int cisco_delete_file(serial_conn_t *conn, const char *file_path);
-int cisco_delete_directory(serial_conn_t *conn, const char *dir_path);
+int cisco_wait_for_prompt(serial_conn_t *conn, int timeout);
+int cisco_send_command(serial_conn_t *conn, const char *command, int timeout);
+int cisco_init_flash(serial_conn_t *conn, int timeout);
+int cisco_get_directory_listing(serial_conn_t *conn, const char *path, file_entry_t **files, int timeout);
+int cisco_delete_file(serial_conn_t *conn, const char *file_path, int timeout);
+int cisco_delete_directory(serial_conn_t *conn, const char *dir_path, int timeout);
 
 // File tree management
 dir_node_t *file_tree_create(const char *name, const char *path, file_type_t type);

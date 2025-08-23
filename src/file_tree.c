@@ -40,7 +40,7 @@ void file_tree_add_child(dir_node_t *parent, dir_node_t *child) {
 
 void file_tree_build_recursive(serial_conn_t *conn, dir_node_t *parent, const char *path) {
     file_entry_t *files = NULL;
-    int file_count = cisco_get_directory_listing(conn, path, &files);
+    int file_count = cisco_get_directory_listing(conn, path, &files, 30);
     
     if (file_count <= 0) return;
     
@@ -133,9 +133,9 @@ void file_tree_delete_selected_recursive(serial_conn_t *conn, dir_node_t *node, 
         int result;
         
         if (node->type == FILE_TYPE_DIRECTORY) {
-            result = cisco_delete_directory(conn, node->path);
+            result = cisco_delete_directory(conn, node->path, 30);
         } else {
-            result = cisco_delete_file(conn, node->path);
+            result = cisco_delete_file(conn, node->path, 30);
         }
         
         if (result == 0) {

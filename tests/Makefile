@@ -3,8 +3,8 @@ CFLAGS = -Wall -Wextra -std=c99 -I../include
 LDFLAGS = -lpthread
 
 # Source files
-TEST_FRAMEWORK_SRC = test_framework.c
-TEST_SRC = test_cisco_commands.c
+TEST_FRAMEWORK_SRC = framework/test_framework.c
+TEST_SRC = unit/test_cisco_commands.c
 SOURCE_SRC = ../src/cisco_commands.c
 
 # Object files
@@ -23,11 +23,11 @@ $(TEST_EXEC): $(TEST_FRAMEWORK_OBJ) $(TEST_OBJ) $(SOURCE_OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Compile test framework
-$(TEST_FRAMEWORK_OBJ): $(TEST_FRAMEWORK_SRC) test_framework.h
+$(TEST_FRAMEWORK_OBJ): $(TEST_FRAMEWORK_SRC) framework/test_framework.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Compile test file
-$(TEST_OBJ): $(TEST_SRC) test_framework.h ../include/cisco_cli.h
+$(TEST_OBJ): $(TEST_SRC) framework/test_framework.h ../include/cisco_cli.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Compile source file (only the one we need for testing)

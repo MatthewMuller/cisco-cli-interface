@@ -82,8 +82,8 @@ build_app() {
 
 # Run tests in container
 run_tests() {
-    print_status "Running tests in container..."
-    $DOCKER_COMPOSE_CMD run --rm cisco-cli-dev bash -c "cd /app && make test && ./build/test-runner"
+    print_status "Running unit tests in container..."
+    $DOCKER_COMPOSE_CMD run --rm cisco-cli-dev bash -c "cd /app/tests && make clean && make && make test"
 }
 
 # Clean up containers and images
@@ -93,6 +93,13 @@ cleanup() {
     print_success "Cleanup completed!"
 }
 
+# Clean test artifacts
+clean_tests() {
+    print_status "Cleaning test artifacts..."
+    $DOCKER_COMPOSE_CMD run --rm cisco-cli-dev bash -c "cd /app/tests && make clean"
+    print_success "Test cleanup completed!"
+}
+
 # Show help
 show_help() {
     echo "Cisco CLI Interface - Development Setup"
@@ -100,17 +107,20 @@ show_help() {
     echo "Usage: $0 [COMMAND]"
     echo
     echo "Commands:"
-    echo "  build     Build the development environment"
-    echo "  shell     Start an interactive development shell"
-    echo "  compile   Build the application in container"
-    echo "  test      Run tests in container"
-    echo "  clean     Clean up Docker resources"
-    echo "  help      Show this help message"
+    echo "  build       Build the development environment"
+    echo "  shell       Start an interactive development shell"
+    echo "  compile     Build the application in container"
+    echo "  test        Run unit tests in container"
+    echo "  clean       Clean up Docker resources"
+    echo "  clean-tests Clean test artifacts"
+    echo "  help        Show this help message"
     echo
     echo "Examples:"
     echo "  $0 build      # Build the Docker environment"
     echo "  $0 shell      # Start development shell"
     echo "  $0 compile    # Build the application"
+    echo "  $0 test       # Run unit tests"
+    echo "  $0 clean-tests # Clean test artifacts"
     echo
     echo "Development Workflow:"
     echo "1. Run '$0 build' to set up the environment"
@@ -139,6 +149,9 @@ main() {
             ;;
         clean)
             cleanup
+            ;;
+        clean-tests)
+            clean_tests
             ;;
         help|--help|-h)
             show_help

@@ -32,7 +32,7 @@ int test_cisco_wait_for_prompt_success_immediate(void) {
     // Set up mock to return a line with prompt immediately
     mock_serial_read_until_set_return(15, "Router# : ");
     
-    int result = cisco_wait_for_prompt(&conn, 10);
+    int result = cisco_wait_for_prompt(&conn, 1);
     
     TEST_ASSERT_EQUAL(0, result);
     TEST_ASSERT_EQUAL(1, mock_serial_read_until.call_count);
@@ -47,13 +47,12 @@ int test_cisco_wait_for_prompt_success_delayed(void) {
     
     // Set up mock to return empty lines first, then prompt
     mock_serial_read_until_set_return(0, "");  // No data
-    mock_serial_read_until_set_return(0, "");  // No data
     mock_serial_read_until_set_return(12, "Router# : ");  // Prompt found
     
-    int result = cisco_wait_for_prompt(&conn, 10);
+    int result = cisco_wait_for_prompt(&conn, 2);
     
     TEST_ASSERT_EQUAL(0, result);
-    TEST_ASSERT_EQUAL(3, mock_serial_read_until.call_count);
+    TEST_ASSERT_EQUAL(2, mock_serial_read_until.call_count);
     
     return 1;
 }
@@ -67,11 +66,11 @@ int test_cisco_wait_for_prompt_timeout(void) {
     // The function will call usleep and decrement timeout until it reaches 0
     // We don't need to set up multiple returns since the mock will return 0 by default
     
-    int result = cisco_wait_for_prompt(&conn, 3);  // 3 iterations
+    int result = cisco_wait_for_prompt(&conn, 1);  // 1 second timeout
     
     TEST_ASSERT_EQUAL(-1, result);
-    // Should have been called at least 3 times (once per timeout iteration)
-    TEST_ASSERT(mock_serial_read_until.call_count >= 3);
+    // Should have been called at least 1 time (once per timeout iteration)
+    TEST_ASSERT(mock_serial_read_until.call_count >= 1);
     
     return 1;
 }
@@ -85,7 +84,7 @@ int test_cisco_wait_for_prompt_no_prompt_in_data(void) {
     mock_serial_read_until_set_return(20, "Some output without prompt\n");
     mock_serial_read_until_set_return(15, "Router# : ");
     
-    int result = cisco_wait_for_prompt(&conn, 10);
+    int result = cisco_wait_for_prompt(&conn, 2);
     
     TEST_ASSERT_EQUAL(0, result);
     TEST_ASSERT_EQUAL(2, mock_serial_read_until.call_count);
@@ -103,7 +102,7 @@ int test_cisco_wait_for_prompt_empty_data(void) {
     mock_serial_read_until_set_return(0, "");
     mock_serial_read_until_set_return(10, "Router# : ");
     
-    int result = cisco_wait_for_prompt(&conn, 10);
+    int result = cisco_wait_for_prompt(&conn, 3);
     
     TEST_ASSERT_EQUAL(0, result);
     TEST_ASSERT_EQUAL(3, mock_serial_read_until.call_count);

@@ -3,6 +3,7 @@
 int cisco_wait_for_prompt(serial_conn_t *conn, int timeout) {
     char buffer[MAX_LINE_LEN];
     
+    // timeout parameter is in seconds
     while (timeout > 0) {
         int bytes_read = serial_read_until(conn, buffer, sizeof(buffer), "\n");
         if (bytes_read > 0) {
@@ -11,7 +12,7 @@ int cisco_wait_for_prompt(serial_conn_t *conn, int timeout) {
                 return 0;
             }
         }
-        usleep(100000); // 100ms delay
+        usleep(1000000); // 1 second delay
         timeout--;
     }
     
@@ -44,7 +45,7 @@ int cisco_init_flash(serial_conn_t *conn, int timeout) {
                 break;
             }
         }
-        usleep(100000); // 100ms delay
+        usleep(1000000); // 1 second delay
         timeout--;
     }
     

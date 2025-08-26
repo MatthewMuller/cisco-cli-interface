@@ -105,6 +105,7 @@ void serial_set_debug(serial_conn_t *conn, int enabled);
 void serial_close(serial_conn_t *conn);
 
 // Cisco commands
+// Note: All timeout parameters are in seconds
 int cisco_wait_for_prompt(serial_conn_t *conn, int timeout);
 int cisco_send_command(serial_conn_t *conn, const char *command, int timeout);
 int cisco_init_flash(serial_conn_t *conn, int timeout);

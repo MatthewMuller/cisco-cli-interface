@@ -232,6 +232,30 @@ int run_test_suite(const char *suite_name);
 void print_test_stats(void);
 
 // ============================================================================
+// Test Registry Declarations
+// ============================================================================
+
+/**
+ * @brief Test registry - array of test function pointers
+ */
+extern test_func_t test_registry[];
+
+/**
+ * @brief Number of tests in registry
+ */
+extern int test_registry_count;
+
+/**
+ * @brief Test names registry - parallel array to test_registry
+ */
+extern const char* test_names[];
+
+/**
+ * @brief Number of test names in registry
+ */
+extern int test_names_count;
+
+// ============================================================================
 // Test Fixture Helpers
 // ============================================================================
 

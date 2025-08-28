@@ -112,6 +112,10 @@ static struct {
 extern test_func_t test_registry[];
 extern int test_registry_count;
 
+// Test names registry - parallel array to test_registry
+extern const char* test_names[];
+extern int test_names_count;
+
 /**
  * @brief Reset test statistics
  */
@@ -181,8 +185,16 @@ int run_all_tests(void) {
     int all_passed = 1;
     
     for (int i = 0; i < test_registry_count; i++) {
-        char test_name[64];
-        snprintf(test_name, sizeof(test_name), "test_%d", i);
+        const char* test_name;
+        
+        // Use test names if available, otherwise fall back to generic names
+        if (i < test_names_count && test_names[i]) {
+            test_name = test_names[i];
+        } else {
+            static char generic_name[64];
+            snprintf(generic_name, sizeof(generic_name), "test_%d", i);
+            test_name = generic_name;
+        }
         
         if (!run_single_test(test_name, test_registry[i])) {
             all_passed = 0;

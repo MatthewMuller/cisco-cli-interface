@@ -60,6 +60,29 @@ test_func_t test_registry[] = {
 
 int test_registry_count = sizeof(test_registry) / sizeof(test_registry[0]) - 1;
 
+// Test names registry - parallel array to test_registry
+const char* test_names[] = {
+    "wait_for_prompt_success_immediate",
+    "wait_for_prompt_success_delayed",
+    "wait_for_prompt_timeout",
+    "wait_for_prompt_no_prompt_in_data",
+    "wait_for_prompt_empty_data",
+    "send_command_success",
+    "send_command_serial_write_failure",
+    "send_command_prompt_timeout",
+    "send_command_empty_command",
+    "send_command_long_command",
+    "send_command_special_characters",
+    "init_flash_success_immediate",
+    "init_flash_success_delayed",
+    "init_flash_timeout",
+    "init_flash_send_command_failure",
+    "init_flash_empty_data",
+    NULL
+};
+
+int test_names_count = sizeof(test_names) / sizeof(test_names[0]) - 1;
+
 // ============================================================================
 // Test Fixtures
 // ============================================================================

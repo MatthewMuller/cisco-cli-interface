@@ -1,156 +1,284 @@
-#ifndef TEST_FRAMEWORK_H
-#define TEST_FRAMEWORK_H
+/**
+ * @file test_framework_v2.h
+ * @brief Streamlined C test framework for the Cisco CLI interface project
+ * 
+ * This header provides a modern testing framework with:
+ * - Simple test registration and discovery
+ * - Test fixtures for setup/teardown
+ * - Test suites for organization
+ * - Simplified mock framework
+ * - Better assertion macros
+ * 
+ * @author Cisco CLI Interface Team
+ * @version 2.0
+ */
+
+#ifndef TEST_FRAMEWORK_V2_H
+#define TEST_FRAMEWORK_V2_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <stdarg.h>
-#include <unistd.h>
-#include "../../include/cisco_cli.h"
 
-// Test framework colors
-#define TEST_COLOR_RED     "\033[31m"
-#define TEST_COLOR_GREEN   "\033[32m"
-#define TEST_COLOR_YELLOW  "\033[33m"
-#define TEST_COLOR_BLUE    "\033[34m"
-#define TEST_COLOR_RESET   "\033[0m"
+// ============================================================================
+// Test Discovery and Registration
+// ============================================================================
 
-// Test result tracking
+/**
+ * @brief Test function signature
+ */
+typedef int (*test_func_t)(void);
+
+/**
+ * @brief Test fixture function signatures
+ */
+typedef void (*test_setup_func_t)(void);
+typedef void (*test_teardown_func_t)(void);
+
+/**
+ * @brief Test suite structure
+ */
+typedef struct test_suite {
+    const char *name;
+    test_setup_func_t setup;
+    test_teardown_func_t teardown;
+    test_func_t *tests;
+    int test_count;
+} test_suite_t;
+
+/**
+ * @brief Define a test function
+ * 
+ * Usage: TEST(test_name) { ... }
+ */
+#define TEST(name) \
+    int test_##name(void)
+
+/**
+ * @brief Register a test function
+ * 
+ * Usage: TEST_REGISTER(test_function_name)
+ */
+#define TEST_REGISTER(name) \
+    test_func_t test_##name##_ptr = test_##name
+
+/**
+ * @brief Define a test suite
+ */
+#define TEST_SUITE(name, setup_func, teardown_func) \
+    test_suite_t test_suite_##name = { \
+        .name = #name, \
+        .setup = setup_func, \
+        .teardown = teardown_func, \
+        .tests = NULL, \
+        .test_count = 0 \
+    }
+
+// ============================================================================
+// Assertion Macros
+// ============================================================================
+
+/**
+ * @brief Assert that a condition is true
+ */
+#define ASSERT_TRUE(condition) \
+    do { \
+        if (!(condition)) { \
+            printf("FAIL: %s:%d - Assertion failed: %s\n", __FILE__, __LINE__, #condition); \
+            return 0; \
+        } \
+    } while(0)
+
+/**
+ * @brief Assert that a condition is false
+ */
+#define ASSERT_FALSE(condition) \
+    do { \
+        if ((condition)) { \
+            printf("FAIL: %s:%d - Assertion failed: %s should be false\n", __FILE__, __LINE__, #condition); \
+            return 0; \
+        } \
+    } while(0)
+
+/**
+ * @brief Assert that two integers are equal
+ */
+#define ASSERT_EQUAL(expected, actual) \
+    do { \
+        if ((expected) != (actual)) { \
+            printf("FAIL: %s:%d - Expected %ld, got %ld\n", __FILE__, __LINE__, (long)(expected), (long)(actual)); \
+            return 0; \
+        } \
+    } while(0)
+
+/**
+ * @brief Assert that two strings are equal
+ */
+#define ASSERT_STRING_EQUAL(expected, actual) \
+    do { \
+        if (strcmp((expected), (actual)) != 0) { \
+            printf("FAIL: %s:%d - Expected '%s', got '%s'\n", __FILE__, __LINE__, (expected), (actual)); \
+            return 0; \
+        } \
+    } while(0)
+
+/**
+ * @brief Assert that a pointer is not NULL
+ */
+#define ASSERT_NOT_NULL(ptr) \
+    do { \
+        if ((ptr) == NULL) { \
+            printf("FAIL: %s:%d - Pointer is NULL: %s\n", __FILE__, __LINE__, #ptr); \
+            return 0; \
+        } \
+    } while(0)
+
+/**
+ * @brief Assert that a pointer is NULL
+ */
+#define ASSERT_NULL(ptr) \
+    do { \
+        if ((ptr) != NULL) { \
+            printf("FAIL: %s:%d - Pointer is not NULL: %s\n", __FILE__, __LINE__, #ptr); \
+            return 0; \
+        } \
+    } while(0)
+
+// ============================================================================
+// Mock Framework
+// ============================================================================
+
+/**
+ * @brief Mock state structure for serial functions
+ */
 typedef struct {
-    int total_tests;
-    int passed_tests;
-    int failed_tests;
-    char current_test_name[256];
-} test_context_t;
-
-extern test_context_t test_ctx;
-
-// Test macros
-#define TEST_START(name) do { \
-    strncpy(test_ctx.current_test_name, name, sizeof(test_ctx.current_test_name) - 1); \
-    test_ctx.current_test_name[sizeof(test_ctx.current_test_name) - 1] = '\0'; \
-    printf("%s[TEST]%s %s\n", TEST_COLOR_BLUE, TEST_COLOR_RESET, name); \
-} while(0)
-
-#define TEST_ASSERT(condition) do { \
-    if (!(condition)) { \
-        printf("%s[FAIL]%s %s: Assertion failed: %s\n", \
-               TEST_COLOR_RED, TEST_COLOR_RESET, \
-               test_ctx.current_test_name, #condition); \
-        test_ctx.failed_tests++; \
-        return; \
-    } \
-} while(0)
-
-#define TEST_ASSERT_EQ(expected, actual) do { \
-    if ((expected) != (actual)) { \
-        printf("%s[FAIL]%s %s: Expected %d, got %d\n", \
-               TEST_COLOR_RED, TEST_COLOR_RESET, \
-               test_ctx.current_test_name, (int)(expected), (int)(actual)); \
-        test_ctx.failed_tests++; \
-        return; \
-    } \
-} while(0)
-
-#define TEST_ASSERT_STR_EQ(expected, actual) do { \
-    if (strcmp((expected), (actual)) != 0) { \
-        printf("%s[FAIL]%s %s: Expected '%s', got '%s'\n", \
-               TEST_COLOR_RED, TEST_COLOR_RESET, \
-               test_ctx.current_test_name, (expected), (actual)); \
-        test_ctx.failed_tests++; \
-        return; \
-    } \
-} while(0)
-
-#define TEST_ASSERT_NULL(ptr) do { \
-    if ((ptr) != NULL) { \
-        printf("%s[FAIL]%s %s: Expected NULL, got non-NULL\n", \
-               TEST_COLOR_RED, TEST_COLOR_RESET, \
-               test_ctx.current_test_name); \
-        test_ctx.failed_tests++; \
-        return; \
-    } \
-} while(0)
-
-#define TEST_ASSERT_NOT_NULL(ptr) do { \
-    if ((ptr) == NULL) { \
-        printf("%s[FAIL]%s %s: Expected non-NULL, got NULL\n", \
-               TEST_COLOR_RED, TEST_COLOR_RESET, \
-               test_ctx.current_test_name); \
-        test_ctx.failed_tests++; \
-        return; \
-    } \
-} while(0)
-
-#define TEST_PASS() do { \
-    printf("%s[PASS]%s %s\n", TEST_COLOR_GREEN, TEST_COLOR_RESET, \
-           test_ctx.current_test_name); \
-    test_ctx.passed_tests++; \
-} while(0)
-
-// Test suite macros
-#define TEST_SUITE_START(name) do { \
-    printf("\n%s=== Test Suite: %s ===%s\n", \
-           TEST_COLOR_YELLOW, name, TEST_COLOR_RESET); \
-} while(0)
-
-#define TEST_SUITE_END() do { \
-    printf("\n%s=== Test Results ===%s\n", \
-           TEST_COLOR_YELLOW, TEST_COLOR_RESET); \
-    printf("Total: %d, Passed: %d, Failed: %d\n", \
-           test_ctx.total_tests, test_ctx.passed_tests, test_ctx.failed_tests); \
-    if (test_ctx.failed_tests == 0) { \
-        printf("%sAll tests passed!%s\n", TEST_COLOR_GREEN, TEST_COLOR_RESET); \
-    } else { \
-        printf("%s%d tests failed!%s\n", \
-               TEST_COLOR_RED, test_ctx.failed_tests, TEST_COLOR_RESET); \
-    } \
-} while(0)
-
-// Mock framework for serial communication
-typedef struct {
-    char *read_data;           // Data to return on read
-    int read_data_len;         // Length of read data
-    int read_data_pos;         // Current position in read data
-    char expected_write[1024]; // Expected data to be written
-    int write_called;          // Number of times write was called
-    char last_written[1024];   // Last data written
-    int return_value;          // Return value for operations
-    int timeout_occurred;      // Whether timeout should occur
+    int call_count;
+    int return_values[20];
+    char buffer_values[20][1024];
+    int return_index;
+    char last_data[1024];
 } mock_serial_t;
 
-extern mock_serial_t mock_serial;
+extern mock_serial_t mock_serial_read;
+extern mock_serial_t mock_serial_write;
 
-// Mock function declarations
-void mock_serial_init(void);
-void mock_serial_reset(void);
-void mock_serial_set_read_data(const char *data);
-void mock_serial_append_read_data(const char *data);
-void mock_serial_set_expected_write(const char *data);
-void mock_serial_set_return_value(int value);
-void mock_serial_set_timeout(int timeout);
+/**
+ * @brief Initialize mock state
+ */
+#define MOCK_INIT(mock) \
+    do { \
+        (mock).call_count = 0; \
+        (mock).return_index = 0; \
+        memset((mock).return_values, 0, sizeof((mock).return_values)); \
+        memset((mock).buffer_values, 0, sizeof((mock).buffer_values)); \
+        memset((mock).last_data, 0, sizeof((mock).last_data)); \
+    } while(0)
 
-// Mock implementations of serial functions
-int mock_serial_write(serial_conn_t *conn, const char *data);
-int mock_serial_read(serial_conn_t *conn, char *buffer, int max_len);
-int mock_serial_read_until(serial_conn_t *conn, char *buffer, int max_len, const char *delimiter);
+/**
+ * @brief Set up mock return values
+ */
+#define MOCK_SET_RETURN(mock, return_val, buffer_content) \
+    do { \
+        if ((mock).return_index < 20) { \
+            (mock).return_values[(mock).return_index] = (return_val); \
+            if ((buffer_content) != NULL) { \
+                strncpy((mock).buffer_values[(mock).return_index], (buffer_content), 1023); \
+            } else { \
+                (mock).buffer_values[(mock).return_index][0] = '\0'; \
+            } \
+            (mock).return_index++; \
+        } \
+    } while(0)
 
-// Test runner
-void run_all_tests(void);
+/**
+ * @brief Set up mock return values (read function)
+ */
+#define MOCK_READ_SET_RETURN(return_val, buffer_content) \
+    MOCK_SET_RETURN(mock_serial_read, return_val, buffer_content)
 
-// Individual test function declarations
-void test_cisco_wait_for_prompt_success(void);
-void test_cisco_wait_for_prompt_timeout(void);
-void test_cisco_send_command_success(void);
-void test_cisco_send_command_failure(void);
-void test_cisco_init_flash_success(void);
-void test_cisco_init_flash_timeout(void);
-void test_cisco_get_directory_listing_success(void);
-void test_cisco_get_directory_listing_empty(void);
-void test_cisco_delete_file_success(void);
-void test_cisco_delete_file_failure(void);
-void test_cisco_delete_directory_success(void);
-void test_cisco_delete_directory_failure(void);
+/**
+ * @brief Set up mock return values (write function)
+ */
+#define MOCK_WRITE_SET_RETURN(return_val) \
+    MOCK_SET_RETURN(mock_serial_write, return_val, "")
 
-#endif // TEST_FRAMEWORK_H
+/**
+ * @brief Initialize all mocks
+ */
+#define MOCK_INIT_ALL() \
+    do { \
+        MOCK_INIT(mock_serial_read); \
+        MOCK_INIT(mock_serial_write); \
+    } while(0)
+
+// ============================================================================
+// Test Runner Functions
+// ============================================================================
+
+/**
+ * @brief Run all registered tests
+ */
+int run_all_tests(void);
+
+/**
+ * @brief Run tests in a specific suite
+ */
+int run_test_suite(const char *suite_name);
+
+/**
+ * @brief Get test statistics
+ */
+void print_test_stats(void);
+
+// ============================================================================
+// Test Registry Declarations
+// ============================================================================
+
+/**
+ * @brief Test registry - array of test function pointers
+ */
+extern test_func_t test_registry[];
+
+/**
+ * @brief Number of tests in registry
+ */
+extern int test_registry_count;
+
+/**
+ * @brief Test names registry - parallel array to test_registry
+ */
+extern const char* test_names[];
+
+/**
+ * @brief Number of test names in registry
+ */
+extern int test_names_count;
+
+// ============================================================================
+// Test Fixture Helpers
+// ============================================================================
+
+/**
+ * @brief Define a test setup function
+ */
+#define TEST_SETUP(name) \
+    void test_setup_##name(void)
+
+/**
+ * @brief Define a test teardown function
+ */
+#define TEST_TEARDOWN(name) \
+    void test_teardown_##name(void)
+
+/**
+ * @brief Common test setup for serial tests
+ */
+TEST_SETUP(serial);
+
+/**
+ * @brief Common test teardown for serial tests
+ */
+TEST_TEARDOWN(serial);
+
+#endif // TEST_FRAMEWORK_V2_H

@@ -24,9 +24,11 @@ jobs:
         make clean
         make
         
-    - name: Run tests
+    - name: Build and run unit tests
       run: |
-        ./tests/integration/test_compile.sh
+        cd tests
+        make clean
+        make test
         
     - name: Check build artifacts
       run: |

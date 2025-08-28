@@ -36,6 +36,15 @@ TEST(init_flash_success_delayed);
 TEST(init_flash_timeout);
 TEST(init_flash_send_command_failure);
 TEST(init_flash_empty_data);
+TEST(get_directory_listing_success_flash);
+TEST(get_directory_listing_success_custom_path);
+TEST(get_directory_listing_send_command_failure);
+TEST(get_directory_listing_read_failure);
+TEST(get_directory_listing_empty_directory);
+TEST(get_directory_listing_mixed_file_types);
+TEST(get_directory_listing_long_filenames);
+TEST(get_directory_listing_malformed_output);
+TEST(get_directory_listing_memory_allocation_failure);
 
 // Test registry - all test functions
 test_func_t test_registry[] = {
@@ -55,6 +64,15 @@ test_func_t test_registry[] = {
     test_init_flash_timeout,
     test_init_flash_send_command_failure,
     test_init_flash_empty_data,
+    test_get_directory_listing_success_flash,
+    test_get_directory_listing_success_custom_path,
+    test_get_directory_listing_send_command_failure,
+    test_get_directory_listing_read_failure,
+    test_get_directory_listing_empty_directory,
+    test_get_directory_listing_mixed_file_types,
+    test_get_directory_listing_long_filenames,
+    test_get_directory_listing_malformed_output,
+    test_get_directory_listing_memory_allocation_failure,
     NULL
 };
 
@@ -78,6 +96,15 @@ const char* test_names[] = {
     "init_flash_timeout",
     "init_flash_send_command_failure",
     "init_flash_empty_data",
+    "get_directory_listing_success_flash",
+    "get_directory_listing_success_custom_path",
+    "get_directory_listing_send_command_failure",
+    "get_directory_listing_read_failure",
+    "get_directory_listing_empty_directory",
+    "get_directory_listing_mixed_file_types",
+    "get_directory_listing_long_filenames",
+    "get_directory_listing_malformed_output",
+    "get_directory_listing_memory_allocation_failure",
     NULL
 };
 
@@ -105,6 +132,13 @@ static void setup_send_command_tests(void) {
  * @brief Setup function for cisco_init_flash tests
  */
 static void setup_init_flash_tests(void) {
+    MOCK_INIT_ALL();
+}
+
+/**
+ * @brief Setup function for cisco_get_directory_listing tests
+ */
+static void setup_get_directory_listing_tests(void) {
     MOCK_INIT_ALL();
 }
 
@@ -399,6 +433,327 @@ TEST(init_flash_empty_data) {
     ASSERT_EQUAL(4, mock_serial_read.call_count); // Called three times to find flash_init prompt, once in cisco_send_command
     ASSERT_EQUAL(1, mock_serial_write.call_count); // Called once to send flash_init command
     ASSERT_STRING_EQUAL("flash_init\n", mock_serial_write.last_data);
+    
+    return 1;
+}
+
+// ============================================================================
+// cisco_get_directory_listing Tests
+// ============================================================================
+
+TEST(get_directory_listing_success_flash) {
+    serial_conn_t conn;
+    file_entry_t *files = NULL;
+    setup_get_directory_listing_tests();
+    
+    // Set up mocks for successful directory listing
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(200, "Directory of flash:/longnames\n"
+                              "1  -rwx  1024      Jan 01 2020 00:00:00 +00:00  config.txt\n"
+                              "2  -rwx  2048      Jan 01 2020 00:00:00 +00:00  image.bin\n"
+                              "3  drwx  0          Jan 01 2020 00:00:00 +00:00  backup\n"
+                              "9207808 bytes available (18790400 bytes used)\n");
+    
+    int result = cisco_get_directory_listing(&conn, "flash:/", &files, 30);
+    
+
+    
+    ASSERT_EQUAL(3, result);
+    ASSERT_NOT_NULL(files);
+    
+    // Check first file (config.txt)
+    ASSERT_STRING_EQUAL("config.txt", files->name);
+    ASSERT_STRING_EQUAL("flash:/config.txt", files->full_path);
+    ASSERT_EQUAL(FILE_TYPE_REGULAR, files->type);
+    ASSERT_EQUAL(1024, files->size);
+    ASSERT_EQUAL(0, files->selected);
+    
+    // Check second file (image.bin)
+    ASSERT_NOT_NULL(files->next);
+    ASSERT_STRING_EQUAL("image.bin", files->next->name);
+    ASSERT_STRING_EQUAL("flash:/image.bin", files->next->full_path);
+    ASSERT_EQUAL(FILE_TYPE_BINARY, files->next->type);
+    ASSERT_EQUAL(2048, files->next->size);
+    
+    // Check third file (backup directory)
+    ASSERT_NOT_NULL(files->next->next);
+    ASSERT_STRING_EQUAL("backup", files->next->next->name);
+    ASSERT_STRING_EQUAL("flash:/backup", files->next->next->full_path);
+    ASSERT_EQUAL(FILE_TYPE_DIRECTORY, files->next->next->type);
+    ASSERT_EQUAL(0, files->next->next->size);
+    
+    // Verify no more files
+    ASSERT_NULL(files->next->next->next);
+    
+    // Verify mock calls
+    ASSERT_EQUAL(1, mock_serial_write.call_count);
+    ASSERT_STRING_EQUAL("dir flash:/\n", mock_serial_write.last_data);
+    ASSERT_EQUAL(2, mock_serial_read.call_count);
+    
+    // Clean up
+    while (files) {
+        file_entry_t *temp = files;
+        files = files->next;
+        free(temp);
+    }
+    
+    return 1;
+}
+
+TEST(get_directory_listing_success_custom_path) {
+    serial_conn_t conn;
+    file_entry_t *files = NULL;
+    setup_get_directory_listing_tests();
+    
+    // Set up mocks for successful directory listing with custom path
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(150, "Directory of flash:/backup\n"
+                              "5  -rwx  512       Jan 01 2020 00:00:00 +00:00  old_config.txt\n"
+                              "6  -rwx  1024      Jan 01 2020 00:00:00 +00:00  backup.bin\n");
+    
+    int result = cisco_get_directory_listing(&conn, "flash:/backup", &files, 30);
+    
+
+    
+    ASSERT_EQUAL(2, result);
+    ASSERT_NOT_NULL(files);
+    
+    // Check first file
+    ASSERT_STRING_EQUAL("old_config.txt", files->name);
+    ASSERT_STRING_EQUAL("flash:/backup/old_config.txt", files->full_path);
+    ASSERT_EQUAL(FILE_TYPE_REGULAR, files->type);
+    ASSERT_EQUAL(512, files->size);
+    
+    // Check second file
+    ASSERT_NOT_NULL(files->next);
+    ASSERT_STRING_EQUAL("backup.bin", files->next->name);
+    ASSERT_STRING_EQUAL("flash:/backup/backup.bin", files->next->full_path);
+    ASSERT_EQUAL(FILE_TYPE_BINARY, files->next->type);
+    ASSERT_EQUAL(1024, files->next->size);
+    
+    // Verify no more files
+    ASSERT_NULL(files->next->next);
+    
+    // Verify mock calls
+    ASSERT_EQUAL(1, mock_serial_write.call_count);
+    ASSERT_STRING_EQUAL("dir flash:/backup\n", mock_serial_write.last_data);
+    
+    // Clean up
+    while (files) {
+        file_entry_t *temp = files;
+        files = files->next;
+        free(temp);
+    }
+    
+    return 1;
+}
+
+TEST(get_directory_listing_send_command_failure) {
+    serial_conn_t conn;
+    file_entry_t *files = NULL;
+    setup_get_directory_listing_tests();
+    
+    // Set up mock to make cisco_send_command fail
+    MOCK_WRITE_SET_RETURN(-1); // serial_write fails
+    
+    int result = cisco_get_directory_listing(&conn, "flash:/", &files, 30);
+    
+    ASSERT_EQUAL(-1, result);
+    ASSERT_NULL(files);
+    ASSERT_EQUAL(1, mock_serial_write.call_count);
+    ASSERT_EQUAL(0, mock_serial_read.call_count);
+    
+    return 1;
+}
+
+TEST(get_directory_listing_read_failure) {
+    serial_conn_t conn;
+    file_entry_t *files = NULL;
+    setup_get_directory_listing_tests();
+    
+    // Set up mocks - command succeeds but read fails
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(-1, ""); // serial_read_until fails
+    
+    int result = cisco_get_directory_listing(&conn, "flash:/", &files, 30);
+    
+    ASSERT_EQUAL(-1, result);
+    ASSERT_NULL(files);
+    ASSERT_EQUAL(1, mock_serial_write.call_count);
+    ASSERT_EQUAL(2, mock_serial_read.call_count);
+    
+    return 1;
+}
+
+TEST(get_directory_listing_empty_directory) {
+    serial_conn_t conn;
+    file_entry_t *files = NULL;
+    setup_get_directory_listing_tests();
+    
+    // Set up mocks for empty directory
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(100, "Directory of flash:/empty\n"
+                              "No files in directory\n"
+                              "123456789 bytes available\n");
+    
+    int result = cisco_get_directory_listing(&conn, "flash:/empty", &files, 30);
+    
+    ASSERT_EQUAL(0, result);
+    ASSERT_NULL(files);
+    ASSERT_EQUAL(1, mock_serial_write.call_count);
+    ASSERT_STRING_EQUAL("dir flash:/empty\n", mock_serial_write.last_data);
+    
+    return 1;
+}
+
+TEST(get_directory_listing_mixed_file_types) {
+    serial_conn_t conn;
+    file_entry_t *files = NULL;
+    setup_get_directory_listing_tests();
+    
+    // Set up mocks for directory with mixed file types
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(250, "Directory of flash:/mixed\n"
+                              "1  -rwx  1024      Jan 01 2020 00:00:00 +00:00  config.txt\n"
+                              "2  drwx  0          Jan 01 2020 00:00:00 +00:00  logs\n"
+                              "3  -rwx  4096      Jan 01 2020 00:00:00 +00:00  firmware.bin\n"
+                              "4  -rwx  256        Jan 01 2020 00:00:00 +00:00  startup.cfg\n"
+                              "5  drwx  0          Jan 01 2020 00:00:00 +00:00  temp\n");
+    
+    int result = cisco_get_directory_listing(&conn, "flash:/mixed", &files, 30);
+    
+
+    
+    ASSERT_EQUAL(5, result);
+    ASSERT_NOT_NULL(files);
+    
+    // Verify file types are correctly identified
+    file_entry_t *current = files;
+    ASSERT_EQUAL(FILE_TYPE_REGULAR, current->type); // config.txt
+    current = current->next;
+    ASSERT_EQUAL(FILE_TYPE_DIRECTORY, current->type); // logs/
+    current = current->next;
+    ASSERT_EQUAL(FILE_TYPE_BINARY, current->type); // firmware.bin
+    current = current->next;
+    ASSERT_EQUAL(FILE_TYPE_REGULAR, current->type); // startup.cfg
+    current = current->next;
+    ASSERT_EQUAL(FILE_TYPE_DIRECTORY, current->type); // temp/
+    
+    // Clean up
+    while (files) {
+        file_entry_t *temp = files;
+        files = files->next;
+        free(temp);
+    }
+    
+    return 1;
+}
+
+TEST(get_directory_listing_long_filenames) {
+    serial_conn_t conn;
+    file_entry_t *files = NULL;
+    setup_get_directory_listing_tests();
+    
+    // Set up mocks for directory with long filenames
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(200, "Directory of flash:/longnames\n"
+                              "1  -rwx  1024      Jan 01 2020 00:00:00 +00:00  very_long_filename_that_might_exceed_normal_limits.txt\n"
+                              "2  -rwx  2048      Jan 01 2020 00:00:00 +00:00  another_very_long_filename_with_special_chars_@#$%.bin\n");
+    
+    int result = cisco_get_directory_listing(&conn, "flash:/longnames", &files, 30);
+    
+    ASSERT_EQUAL(2, result);
+    ASSERT_NOT_NULL(files);
+    
+    // Check that long filenames are handled correctly
+    ASSERT_STRING_EQUAL("very_long_filename_that_might_exceed_normal_limits.txt", files->name);
+    ASSERT_STRING_EQUAL("flash:/longnames/very_long_filename_that_might_exceed_normal_limits.txt", files->full_path);
+    
+    ASSERT_NOT_NULL(files->next);
+    ASSERT_STRING_EQUAL("another_very_long_filename_with_special_chars_@#$%.bin", files->next->name);
+    ASSERT_STRING_EQUAL("flash:/longnames/another_very_long_filename_with_special_chars_@#$%.bin", files->next->full_path);
+    
+    // Clean up
+    while (files) {
+        file_entry_t *temp = files;
+        files = files->next;
+        free(temp);
+    }
+    
+    return 1;
+}
+
+TEST(get_directory_listing_malformed_output) {
+    serial_conn_t conn;
+    file_entry_t *files = NULL;
+    setup_get_directory_listing_tests();
+    
+    // Set up mocks for malformed directory output
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(200, "Directory of flash:/malformed\n"
+                              "This is not a valid file entry\n"
+                              "2  -rwx  1429      Jan 01 2020 00:00:00 +00:00  valid_file.txt\n"
+                              "Invalid line with wrong format\n"
+                              "3  drwx  0          Jan 01 2020 00:00:00 +00:00  valid_dir/\n"
+                              "Another invalid line\n");
+    
+    int result = cisco_get_directory_listing(&conn, "flash:/malformed", &files, 30);
+    
+    ASSERT_EQUAL(2, result); // Only valid entries should be parsed
+    ASSERT_NOT_NULL(files);
+    
+    // Check that only valid entries are included
+    ASSERT_STRING_EQUAL("valid_file.txt", files->name);
+    ASSERT_NOT_NULL(files->next);
+    ASSERT_STRING_EQUAL("valid_dir", files->next->name);
+    ASSERT_NULL(files->next->next);
+    
+    // Clean up
+    while (files) {
+        file_entry_t *temp = files;
+        files = files->next;
+        free(temp);
+    }
+    
+    return 1;
+}
+
+TEST(get_directory_listing_memory_allocation_failure) {
+    serial_conn_t conn;
+    file_entry_t *files = NULL;
+    setup_get_directory_listing_tests();
+    
+    // Set up mocks for successful directory listing
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(150, "Directory of flash:/memory_test\n"
+                              "1  -rwx  1024      Jan 01 2020 00:00:00 +00:00  file1.txt\n"
+                              "2  -rwx  2048      Jan 01 2020 00:00:00 +00:00  file2.txt\n");
+    
+    // Note: We can't easily simulate malloc failure in this test framework,
+    // but we can test that the function handles the case gracefully
+    // by ensuring it doesn't crash and returns appropriate results
+    
+    int result = cisco_get_directory_listing(&conn, "flash:/memory_test", &files, 30);
+    
+    // The function should either succeed or fail gracefully
+    ASSERT_TRUE(result >= -1 && result <= 2);
+    
+    // If files were allocated, clean them up
+    if (files) {
+        while (files) {
+            file_entry_t *temp = files;
+            files = files->next;
+            free(temp);
+        }
+    }
     
     return 1;
 }

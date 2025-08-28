@@ -236,6 +236,21 @@ void trim_whitespace(char *str) {
  * @brief Check if file is binary (mock implementation)
  */
 int is_binary_file(const char *filename) {
-    (void)filename;
-    return 0; // Assume not binary for testing
+    if (!filename) return 0;
+    
+    // Check for common binary file extensions
+    const char *ext = strrchr(filename, '.');
+    if (ext) {
+        if (strcmp(ext, ".bin") == 0 || 
+            strcmp(ext, ".exe") == 0 || 
+            strcmp(ext, ".dll") == 0 || 
+            strcmp(ext, ".so") == 0 || 
+            strcmp(ext, ".dylib") == 0 ||
+            strcmp(ext, ".o") == 0 ||
+            strcmp(ext, ".a") == 0) {
+            return 1; // Binary file
+        }
+    }
+    
+    return 0; // Not binary
 }

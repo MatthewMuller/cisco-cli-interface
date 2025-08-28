@@ -172,57 +172,73 @@ int cisco_get_directory_listing(serial_conn_t *conn, const char *path, file_entr
             continue;
         }
         
-        // Parse file entry (format: "2  -rwx  1429      <date>               filename")
+        // Parse file entry (format: "2  -rwx  1429      Jan 01 2020 00:00:00 +00:00  filename")
         int file_num, size;
-        char permissions[16], date_str[64], filename[MAX_PATH_LEN];
+        char permissions[16];
         
-        if (sscanf(line, "%d %s %d %*s %s %[^\n]", 
-                   &file_num, permissions, &size, date_str, filename) >= 4) {
+        // Find the last space-separated field which should be the filename
+        char *last_space = strrchr(line, ' ');
+        if (last_space != NULL && last_space != line) {
+            // Move past the last space to get the filename
+            char *filename_start = last_space + 1;
+            
+            // Simple parsing approach - look for the pattern: number, permissions, size, filename
+            // Format: "    2  -rwx  1429      <date>               filename"
+            // Use a more flexible pattern that skips leading whitespace
+            if (sscanf(line, " %d %s %d", &file_num, permissions, &size) == 3 && 
+                file_num > 0 && size >= 0) {
             
             // Create file entry
             file_entry_t *file = malloc(sizeof(file_entry_t));
             if (!file) continue;
             
-            strncpy(file->name, filename, MAX_PATH_LEN - 1);
+            // Copy filename and remove trailing slash if present
+            strncpy(file->name, filename_start, MAX_PATH_LEN - 1);
             file->name[MAX_PATH_LEN - 1] = '\0';
+            
+            // Remove trailing slash from directory names for consistency
+            size_t name_len = strlen(file->name);
+            if (name_len > 0 && file->name[name_len - 1] == '/') {
+                file->name[name_len - 1] = '\0';
+            }
             
             // Build full path
             if (strcmp(path, "flash:/") == 0) {
                 // For flash:/ paths, we know the prefix is exactly 7 characters
-                size_t filename_len = strlen(filename);
+                size_t filename_len = strlen(file->name);
                 if (filename_len > MAX_PATH_LEN - 8) { // 8 = strlen("flash:/") + 1 for null terminator
                     // Truncate filename to fit
                     strncpy(file->full_path, "flash:/", MAX_PATH_LEN - 1);
-                    strncat(file->full_path, filename, MAX_PATH_LEN - 8);
+                    strncat(file->full_path, file->name, MAX_PATH_LEN - 8);
                     file->full_path[MAX_PATH_LEN - 1] = '\0';
                 } else {
                     // Use strcpy and strcat instead of snprintf to avoid truncation warnings
                     strcpy(file->full_path, "flash:/");
-                    strcat(file->full_path, filename);
+                    strcat(file->full_path, file->name);
                 }
             } else {
                 // Check if path + filename combination is too long
                 size_t path_len = strlen(path);
-                size_t filename_len = strlen(filename);
+                size_t filename_len = strlen(file->name);
                 if (path_len + filename_len + 2 > MAX_PATH_LEN) { // +2 for "/" and null terminator
                     // Truncate to fit
                     strncpy(file->full_path, path, MAX_PATH_LEN - 1);
                     file->full_path[MAX_PATH_LEN - 1] = '\0';
                     strncat(file->full_path, "/", MAX_PATH_LEN - strlen(file->full_path) - 1);
-                    strncat(file->full_path, filename, MAX_PATH_LEN - strlen(file->full_path) - 1);
+                    strncat(file->full_path, file->name, MAX_PATH_LEN - strlen(file->full_path) - 1);
                     file->full_path[MAX_PATH_LEN - 1] = '\0';
                 } else {
                     // Use strcpy and strcat instead of snprintf to avoid truncation warnings
                     strcpy(file->full_path, path);
                     strcat(file->full_path, "/");
-                    strcat(file->full_path, filename);
+                    strcat(file->full_path, file->name);
                 }
             }
             
             // Determine file type based on permissions and name
             if (strstr(permissions, "d") != NULL) {
                 file->type = FILE_TYPE_DIRECTORY;
-            } else if (is_binary_file(filename)) {
+            } else if (is_binary_file(file->name)) {
                 file->type = FILE_TYPE_BINARY;
             } else {
                 file->type = FILE_TYPE_REGULAR;
@@ -240,6 +256,7 @@ int cisco_get_directory_listing(serial_conn_t *conn, const char *path, file_entr
             }
             last_file = file;
             file_count++;
+            }
         }
         
         line = strtok_r(NULL, "\n", &saveptr);

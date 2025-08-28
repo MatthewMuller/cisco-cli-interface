@@ -184,6 +184,8 @@ extern mock_serial_t mock_serial_write;
             (mock).return_values[(mock).return_index] = (return_val); \
             if ((buffer_content) != NULL) { \
                 strncpy((mock).buffer_values[(mock).return_index], (buffer_content), 1023); \
+            } else { \
+                (mock).buffer_values[(mock).return_index][0] = '\0'; \
             } \
             (mock).return_index++; \
         } \
@@ -199,7 +201,7 @@ extern mock_serial_t mock_serial_write;
  * @brief Set up mock return values (write function)
  */
 #define MOCK_WRITE_SET_RETURN(return_val) \
-    MOCK_SET_RETURN(mock_serial_write, return_val, NULL)
+    MOCK_SET_RETURN(mock_serial_write, return_val, "")
 
 /**
  * @brief Initialize all mocks

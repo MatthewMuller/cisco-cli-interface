@@ -271,6 +271,112 @@ int test_cisco_send_command_special_characters(void) {
     return 1;
 }
 
+// Test: cisco_init_flash should succeed when flash_init prompt is found immediately
+int test_cisco_init_flash_success_immediate(void) {
+    serial_conn_t conn;
+    mock_serial_write_init();
+    mock_serial_read_until_init();
+    
+    // Set up mocks - flash_init prompt found immediately, then cisco_send_command succeeds
+    mock_serial_read_until_set_return(20, "flash_init\n"); // flash_init prompt found
+    mock_serial_write_set_return(10); // serial_write succeeds for flash_init command
+    mock_serial_read_until_set_return(15, "Router# : "); // prompt found after flash_init command
+    
+    int result = cisco_init_flash(&conn, 5);
+    
+    TEST_ASSERT_EQUAL(0, result);
+    TEST_ASSERT_EQUAL(2, mock_serial_read_until.call_count); // Called once to find flash_init prompt, once in cisco_send_command
+    TEST_ASSERT_EQUAL(1, mock_serial_write.call_count); // Called once to send flash_init command
+    TEST_ASSERT_STRING_EQUAL("flash_init\n", mock_serial_write.last_data);
+    
+    return 1;
+}
+
+// Test: cisco_init_flash should succeed when flash_init prompt is found after delay
+int test_cisco_init_flash_success_delayed(void) {
+    serial_conn_t conn;
+    mock_serial_write_init();
+    mock_serial_read_until_init();
+    
+    // Set up mocks - some data without flash_init prompt, then flash_init prompt, then cisco_send_command succeeds
+    mock_serial_read_until_set_return(15, "Some output\n"); // No flash_init prompt
+    mock_serial_read_until_set_return(20, "flash_init\n"); // flash_init prompt found
+    mock_serial_write_set_return(10); // serial_write succeeds for flash_init command
+    mock_serial_read_until_set_return(15, "Router# : "); // prompt found after flash_init command
+    
+    int result = cisco_init_flash(&conn, 5);
+    
+    TEST_ASSERT_EQUAL(0, result);
+    TEST_ASSERT_EQUAL(3, mock_serial_read_until.call_count); // Called twice to find flash_init prompt, once in cisco_send_command
+    TEST_ASSERT_EQUAL(1, mock_serial_write.call_count); // Called once to send flash_init command
+    TEST_ASSERT_STRING_EQUAL("flash_init\n", mock_serial_write.last_data);
+    
+    return 1;
+}
+
+// Test: cisco_init_flash should return -1 when timeout occurs waiting for flash_init prompt
+int test_cisco_init_flash_timeout(void) {
+    serial_conn_t conn;
+    mock_serial_write_init();
+    mock_serial_read_until_init();
+    
+    // Set up mocks - no flash_init prompt found (timeout scenario)
+    // The function will call usleep and decrement timeout until it reaches 0
+    // We don't need to set up multiple returns since the mock will return 0 by default
+    
+    int result = cisco_init_flash(&conn, 1); // 1 second timeout
+    
+    TEST_ASSERT_EQUAL(-1, result);
+    // Should have been called at least 1 time (once per timeout iteration)
+    TEST_ASSERT(mock_serial_read_until.call_count >= 1);
+    TEST_ASSERT_EQUAL(0, mock_serial_write.call_count); // Should not be called if timeout occurs
+    
+    return 1;
+}
+
+// Test: cisco_init_flash should return -1 when cisco_send_command fails
+int test_cisco_init_flash_send_command_failure(void) {
+    serial_conn_t conn;
+    mock_serial_write_init();
+    mock_serial_read_until_init();
+    
+    // Set up mocks - flash_init prompt found, but cisco_send_command fails
+    mock_serial_read_until_set_return(20, "flash_init\n"); // flash_init prompt found
+    mock_serial_write_set_return(-1); // serial_write fails for flash_init command
+    
+    int result = cisco_init_flash(&conn, 5);
+    
+    TEST_ASSERT_EQUAL(-1, result);
+    TEST_ASSERT_EQUAL(1, mock_serial_read_until.call_count); // Called once to find flash_init prompt
+    TEST_ASSERT_EQUAL(1, mock_serial_write.call_count); // Called once to send flash_init command
+    TEST_ASSERT_STRING_EQUAL("flash_init\n", mock_serial_write.last_data);
+    
+    return 1;
+}
+
+// Test: cisco_init_flash should handle empty data correctly
+int test_cisco_init_flash_empty_data(void) {
+    serial_conn_t conn;
+    mock_serial_write_init();
+    mock_serial_read_until_init();
+    
+    // Set up mocks - empty data, then flash_init prompt, then cisco_send_command succeeds
+    mock_serial_read_until_set_return(0, ""); // Empty data
+    mock_serial_read_until_set_return(0, ""); // Empty data
+    mock_serial_read_until_set_return(20, "flash_init\n"); // flash_init prompt found
+    mock_serial_write_set_return(10); // serial_write succeeds for flash_init command
+    mock_serial_read_until_set_return(15, "Router# : "); // prompt found after flash_init command
+    
+    int result = cisco_init_flash(&conn, 5);
+    
+    TEST_ASSERT_EQUAL(0, result);
+    TEST_ASSERT_EQUAL(4, mock_serial_read_until.call_count); // Called three times to find flash_init prompt, once in cisco_send_command
+    TEST_ASSERT_EQUAL(1, mock_serial_write.call_count); // Called once to send flash_init command
+    TEST_ASSERT_STRING_EQUAL("flash_init\n", mock_serial_write.last_data);
+    
+    return 1;
+}
+
 // Main test runner
 int main(void) {
     printf("Running cisco_commands unit tests...\n\n");
@@ -336,6 +442,34 @@ int main(void) {
     
     total++;
     if (run_test("cisco_send_command_special_characters", test_cisco_send_command_special_characters)) {
+        passed++;
+    }
+    
+    // Test cisco_init_flash function
+    printf("\n=== Testing cisco_init_flash ===\n");
+    
+    total++;
+    if (run_test("cisco_init_flash_success_immediate", test_cisco_init_flash_success_immediate)) {
+        passed++;
+    }
+    
+    total++;
+    if (run_test("cisco_init_flash_success_delayed", test_cisco_init_flash_success_delayed)) {
+        passed++;
+    }
+    
+    total++;
+    if (run_test("cisco_init_flash_timeout", test_cisco_init_flash_timeout)) {
+        passed++;
+    }
+    
+    total++;
+    if (run_test("cisco_init_flash_send_command_failure", test_cisco_init_flash_send_command_failure)) {
+        passed++;
+    }
+    
+    total++;
+    if (run_test("cisco_init_flash_empty_data", test_cisco_init_flash_empty_data)) {
         passed++;
     }
     

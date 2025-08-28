@@ -1,91 +1,43 @@
 /**
- * @file test_framework.c
- * @brief Implementation of the simple C test framework
+ * @file test_framework_v2.c
+ * @brief Implementation of the streamlined C test framework
  * 
  * This file contains the implementation of:
+ * - Simple test registration and discovery
+ * - Test runner with statistics
  * - Mock framework for serial communication testing
- * - Test runner functionality
+ * - Test fixtures for setup/teardown
  * 
  * @author Cisco CLI Interface Team
- * @version 1.0
+ * @version 2.0
  */
 
 #include "test_framework.h"
+#include "../include/cisco_cli.h"
 
-/** @brief Global mock state for serial_read_until function */
-mock_serial_read_until_t mock_serial_read_until;
+// ============================================================================
+// Mock Framework Implementation
+// ============================================================================
 
-/**
- * @brief Initialize the mock serial_read_until state
- * 
- * Resets all mock state variables to their initial values:
- * - call_count: 0
- * - return_index: 0
- * - return_values: all zeros
- * - buffer_values: all empty strings
- * 
- * Call this function before each test that uses the mock to ensure
- * a clean state.
- */
-void mock_serial_read_until_init(void) {
-    mock_serial_read_until.call_count = 0;
-    mock_serial_read_until.return_index = 0;
-    memset(mock_serial_read_until.return_values, 0, sizeof(mock_serial_read_until.return_values));
-    memset(mock_serial_read_until.buffer_values, 0, sizeof(mock_serial_read_until.buffer_values));
-}
-
-/**
- * @brief Set up a return value and buffer content for the mock function
- * 
- * Adds a return value and optional buffer content to the mock's predefined
- * responses. These will be returned on successive calls to the mock function
- * in the order they were set up.
- * 
- * The function supports up to 10 predefined responses. If more than 10
- * responses are set up, additional calls will be ignored.
- * 
- * @param return_value The return value to use (number of bytes "read")
- * @param buffer_content String to copy into the buffer (can be NULL for no content)
- */
-void mock_serial_read_until_set_return(int return_value, const char *buffer_content) {
-    if (mock_serial_read_until.return_index < 10) {
-        mock_serial_read_until.return_values[mock_serial_read_until.return_index] = return_value;
-        if (buffer_content) {
-            strncpy(mock_serial_read_until.buffer_values[mock_serial_read_until.return_index], 
-                   buffer_content, 1023);
-        }
-        mock_serial_read_until.return_index++;
-    }
-}
+/** @brief Global mock state for serial functions */
+mock_serial_t mock_serial_read;
+mock_serial_t mock_serial_write;
 
 /**
  * @brief Mock implementation of serial_read_until function
- * 
- * This function replaces the real serial_read_until during testing.
- * It returns predefined values and copies predefined buffer contents
- * based on the mock state.
- * 
- * Behavior:
- * - Increments call_count on each call
- * - Returns the next predefined return value if available
- * - Copies the corresponding buffer content if return value > 0
- * - Returns 0 if no more predefined values are available
- * 
- * @param conn Connection handle (unused in mock implementation)
- * @param buffer Buffer to store read data (must be valid if return value > 0)
- * @param max_len Maximum length of buffer
- * @param delimiter Delimiter string (unused in mock implementation)
- * @return Number of bytes "read", or 0 if no more predefined values
  */
-int mock_serial_read_until_func(void *conn, char *buffer, int max_len, const char *delimiter) {
-    mock_serial_read_until.call_count++;
+int mock_serial_read_until_func(serial_conn_t *conn, char *buffer, int max_len, const char *delimiter) {
+    (void)conn;
+    (void)delimiter;
     
-    if (mock_serial_read_until.call_count <= mock_serial_read_until.return_index) {
-        int index = mock_serial_read_until.call_count - 1;
-        int return_value = mock_serial_read_until.return_values[index];
+    mock_serial_read.call_count++;
+    
+    if (mock_serial_read.call_count <= mock_serial_read.return_index) {
+        int index = mock_serial_read.call_count - 1;
+        int return_value = mock_serial_read.return_values[index];
         
         if (return_value > 0 && buffer) {
-            strncpy(buffer, mock_serial_read_until.buffer_values[index], max_len - 1);
+            strncpy(buffer, mock_serial_read.buffer_values[index], max_len - 1);
             buffer[max_len - 1] = '\0';
         }
         
@@ -96,26 +48,182 @@ int mock_serial_read_until_func(void *conn, char *buffer, int max_len, const cha
 }
 
 /**
- * @brief Run a single test function
- * 
- * Executes the provided test function and reports the result to stdout.
- * The test function should return 1 for pass or 0 for fail.
- * 
- * Output format:
- * - "Running test: <test_name>"
- * - "PASS: <test_name>" or "FAIL: <test_name>"
- * 
- * @param test_name Human-readable name of the test for output
- * @param test_func Function pointer to the test function to execute
- * @return 1 if test passed, 0 if test failed
+ * @brief Mock implementation of serial_write function
  */
-int run_test(const char *test_name, test_function_t test_func) {
-    printf("Running test: %s\n", test_name);
-    int result = test_func();
-    if (result) {
-        printf("PASS: %s\n", test_name);
-    } else {
-        printf("FAIL: %s\n", test_name);
+int mock_serial_write_func(serial_conn_t *conn, const char *data) {
+    (void)conn;
+    
+    mock_serial_write.call_count++;
+    
+    if (data) {
+        strncpy(mock_serial_write.last_data, data, sizeof(mock_serial_write.last_data) - 1);
+        mock_serial_write.last_data[sizeof(mock_serial_write.last_data) - 1] = '\0';
     }
+    
+    if (mock_serial_write.call_count <= mock_serial_write.return_index) {
+        int index = mock_serial_write.call_count - 1;
+        return mock_serial_write.return_values[index];
+    }
+    
+    return 0;
+}
+
+// Override the real functions with our mocks
+int serial_read_until(serial_conn_t *conn, char *buffer, int max_len, const char *delimiter) {
+    return mock_serial_read_until_func(conn, buffer, max_len, delimiter);
+}
+
+int serial_write(serial_conn_t *conn, const char *data) {
+    return mock_serial_write_func(conn, data);
+}
+
+// ============================================================================
+// Test Fixtures
+// ============================================================================
+
+/**
+ * @brief Common test setup for serial tests
+ */
+TEST_SETUP(serial) {
+    MOCK_INIT_ALL();
+}
+
+/**
+ * @brief Common test teardown for serial tests
+ */
+TEST_TEARDOWN(serial) {
+    // Clean up any resources if needed
+}
+
+// ============================================================================
+// Test Registration and Discovery
+// ============================================================================
+
+// Global test statistics
+static struct {
+    int total_tests;
+    int passed_tests;
+    int failed_tests;
+    int current_suite_passed;
+    int current_suite_total;
+} test_stats = {0};
+
+// Test registry - this will be populated by the test files
+extern test_func_t test_registry[];
+extern int test_registry_count;
+
+/**
+ * @brief Reset test statistics
+ */
+static void reset_test_stats(void) {
+    test_stats.total_tests = 0;
+    test_stats.passed_tests = 0;
+    test_stats.failed_tests = 0;
+    test_stats.current_suite_passed = 0;
+    test_stats.current_suite_total = 0;
+}
+
+/**
+ * @brief Print test statistics
+ */
+void print_test_stats(void) {
+    printf("\n==================================================\n");
+    printf("TEST SUMMARY\n");
+    printf("==================================================\n");
+    printf("Total Tests: %d\n", test_stats.total_tests);
+    printf("Passed: %d\n", test_stats.passed_tests);
+    printf("Failed: %d\n", test_stats.failed_tests);
+    printf("Success Rate: %.1f%%\n", 
+           test_stats.total_tests > 0 ? 
+           (float)test_stats.passed_tests / test_stats.total_tests * 100.0f : 0.0f);
+    printf("==================================================\n");
+}
+
+/**
+ * @brief Run a single test function
+ */
+static int run_single_test(const char *test_name, test_func_t test_func) {
+    printf("  Running: %s", test_name);
+    fflush(stdout);
+    
+    int result = test_func();
+    
+    if (result) {
+        printf(" ✓ PASS\n");
+        test_stats.passed_tests++;
+        test_stats.current_suite_passed++;
+    } else {
+        printf(" ✗ FAIL\n");
+        test_stats.failed_tests++;
+    }
+    
+    test_stats.total_tests++;
+    test_stats.current_suite_total++;
+    
     return result;
+}
+
+/**
+ * @brief Run all registered tests
+ */
+int run_all_tests(void) {
+    printf("Running all tests...\n");
+    printf("==================================================\n");
+    
+    reset_test_stats();
+    
+    // Check if test registry is available
+    if (test_registry_count <= 0) {
+        printf("No tests found in registry.\n");
+        return 1;
+    }
+    
+    int all_passed = 1;
+    
+    for (int i = 0; i < test_registry_count; i++) {
+        char test_name[64];
+        snprintf(test_name, sizeof(test_name), "test_%d", i);
+        
+        if (!run_single_test(test_name, test_registry[i])) {
+            all_passed = 0;
+        }
+    }
+    
+    print_test_stats();
+    
+    return all_passed;
+}
+
+/**
+ * @brief Run tests in a specific suite
+ */
+int run_test_suite(const char *suite_name) {
+    printf("Running test suite: %s\n", suite_name);
+    printf("------------------------------\n");
+    
+    reset_test_stats();
+    
+    // For now, run all tests since we don't have suite organization yet
+    // In a full implementation, you'd filter by suite
+    return run_all_tests();
+}
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * @brief Trim whitespace from string (mock implementation)
+ */
+void trim_whitespace(char *str) {
+    (void)str;
+    // Simple implementation for testing
+}
+
+/**
+ * @brief Check if file is binary (mock implementation)
+ */
+int is_binary_file(const char *filename) {
+    (void)filename;
+    return 0; // Assume not binary for testing
 }

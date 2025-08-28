@@ -1,8 +1,8 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99 -I../include
-LDFLAGS = -lpthread
+LDFLAGS = -lpthread -Wl,--gc-sections
 
-# Source files
+# Source files for the streamlined framework
 TEST_FRAMEWORK_SRC = framework/test_framework.c
 TEST_SRC = unit/test_cisco_commands.c
 SOURCE_SRC = ../src/cisco_commands.c
@@ -38,8 +38,21 @@ $(SOURCE_OBJ): $(SOURCE_SRC) ../include/cisco_cli.h
 test: $(TEST_EXEC)
 	./$(TEST_EXEC)
 
+# Run tests with verbose output
+test-verbose: $(TEST_EXEC)
+	./$(TEST_EXEC) --verbose
+
 # Clean
 clean:
 	rm -f $(TEST_FRAMEWORK_OBJ) $(TEST_OBJ) $(SOURCE_OBJ) $(TEST_EXEC)
 
-.PHONY: all test clean
+# Help
+help:
+	@echo "Available targets:"
+	@echo "  all         - Build test executable"
+	@echo "  test        - Run all tests"
+	@echo "  test-verbose- Run all tests with verbose output"
+	@echo "  clean       - Clean test files"
+	@echo "  help        - Show this help"
+
+.PHONY: all test test-verbose clean help

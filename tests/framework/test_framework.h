@@ -1,33 +1,88 @@
 /**
- * @file test_framework.h
- * @brief Simple C test framework for the Cisco CLI interface project
+ * @file test_framework_v2.h
+ * @brief Streamlined C test framework for the Cisco CLI interface project
  * 
- * This header provides a lightweight testing framework with:
- * - Assertion macros for common test conditions
- * - Test runner functionality
- * - Mock framework for serial communication testing
+ * This header provides a modern testing framework with:
+ * - Simple test registration and discovery
+ * - Test fixtures for setup/teardown
+ * - Test suites for organization
+ * - Simplified mock framework
+ * - Better assertion macros
  * 
  * @author Cisco CLI Interface Team
- * @version 1.0
+ * @version 2.0
  */
 
-#ifndef TEST_FRAMEWORK_H
-#define TEST_FRAMEWORK_H
+#ifndef TEST_FRAMEWORK_V2_H
+#define TEST_FRAMEWORK_V2_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
+// ============================================================================
+// Test Discovery and Registration
+// ============================================================================
+
+/**
+ * @brief Test function signature
+ */
+typedef int (*test_func_t)(void);
+
+/**
+ * @brief Test fixture function signatures
+ */
+typedef void (*test_setup_func_t)(void);
+typedef void (*test_teardown_func_t)(void);
+
+/**
+ * @brief Test suite structure
+ */
+typedef struct test_suite {
+    const char *name;
+    test_setup_func_t setup;
+    test_teardown_func_t teardown;
+    test_func_t *tests;
+    int test_count;
+} test_suite_t;
+
+/**
+ * @brief Define a test function
+ * 
+ * Usage: TEST(test_name) { ... }
+ */
+#define TEST(name) \
+    int test_##name(void)
+
+/**
+ * @brief Register a test function
+ * 
+ * Usage: TEST_REGISTER(test_function_name)
+ */
+#define TEST_REGISTER(name) \
+    test_func_t test_##name##_ptr = test_##name
+
+/**
+ * @brief Define a test suite
+ */
+#define TEST_SUITE(name, setup_func, teardown_func) \
+    test_suite_t test_suite_##name = { \
+        .name = #name, \
+        .setup = setup_func, \
+        .teardown = teardown_func, \
+        .tests = NULL, \
+        .test_count = 0 \
+    }
+
+// ============================================================================
+// Assertion Macros
+// ============================================================================
+
 /**
  * @brief Assert that a condition is true
- * 
- * If the condition is false, prints a failure message with file and line number,
- * then returns 0 to indicate test failure.
- * 
- * @param condition The boolean condition to test
  */
-#define TEST_ASSERT(condition) \
+#define ASSERT_TRUE(condition) \
     do { \
         if (!(condition)) { \
             printf("FAIL: %s:%d - Assertion failed: %s\n", __FILE__, __LINE__, #condition); \
@@ -36,32 +91,31 @@
     } while(0)
 
 /**
- * @brief Assert that two integers are equal
- * 
- * Compares expected and actual values. If they don't match, prints a failure
- * message with the expected and actual values.
- * 
- * @param expected The expected integer value
- * @param actual The actual integer value to compare
+ * @brief Assert that a condition is false
  */
-#define TEST_ASSERT_EQUAL(expected, actual) \
+#define ASSERT_FALSE(condition) \
+    do { \
+        if ((condition)) { \
+            printf("FAIL: %s:%d - Assertion failed: %s should be false\n", __FILE__, __LINE__, #condition); \
+            return 0; \
+        } \
+    } while(0)
+
+/**
+ * @brief Assert that two integers are equal
+ */
+#define ASSERT_EQUAL(expected, actual) \
     do { \
         if ((expected) != (actual)) { \
-            printf("FAIL: %s:%d - Expected %d, got %d\n", __FILE__, __LINE__, (expected), (actual)); \
+            printf("FAIL: %s:%d - Expected %ld, got %ld\n", __FILE__, __LINE__, (long)(expected), (long)(actual)); \
             return 0; \
         } \
     } while(0)
 
 /**
  * @brief Assert that two strings are equal
- * 
- * Compares expected and actual strings using strcmp. If they don't match,
- * prints a failure message with the expected and actual string values.
- * 
- * @param expected The expected string value
- * @param actual The actual string value to compare
  */
-#define TEST_ASSERT_STRING_EQUAL(expected, actual) \
+#define ASSERT_STRING_EQUAL(expected, actual) \
     do { \
         if (strcmp((expected), (actual)) != 0) { \
             printf("FAIL: %s:%d - Expected '%s', got '%s'\n", __FILE__, __LINE__, (expected), (actual)); \
@@ -70,73 +124,135 @@
     } while(0)
 
 /**
- * @brief Function pointer type for test functions
- * 
- * All test functions should return an integer:
- * - 1 (true) for test pass
- * - 0 (false) for test fail
+ * @brief Assert that a pointer is not NULL
  */
-typedef int (*test_function_t)(void);
+#define ASSERT_NOT_NULL(ptr) \
+    do { \
+        if ((ptr) == NULL) { \
+            printf("FAIL: %s:%d - Pointer is NULL: %s\n", __FILE__, __LINE__, #ptr); \
+            return 0; \
+        } \
+    } while(0)
 
 /**
- * @brief Run a single test function
- * 
- * Executes the provided test function and reports the result.
- * 
- * @param test_name Human-readable name of the test
- * @param test_func Function pointer to the test function
- * @return 1 if test passed, 0 if test failed
+ * @brief Assert that a pointer is NULL
  */
-int run_test(const char *test_name, test_function_t test_func);
+#define ASSERT_NULL(ptr) \
+    do { \
+        if ((ptr) != NULL) { \
+            printf("FAIL: %s:%d - Pointer is not NULL: %s\n", __FILE__, __LINE__, #ptr); \
+            return 0; \
+        } \
+    } while(0)
+
+// ============================================================================
+// Mock Framework
+// ============================================================================
 
 /**
- * @brief Mock state structure for serial_read_until function
- * 
- * Tracks calls to the mocked serial_read_until function and provides
- * predefined return values and buffer contents for testing.
+ * @brief Mock state structure for serial functions
  */
 typedef struct {
-    int call_count;                    /**< Number of times the mock function was called */
-    int return_values[10];             /**< Array of return values to return on successive calls */
-    char buffer_values[10][1024];      /**< Array of buffer contents to copy on successive calls */
-    int return_index;                  /**< Current index for setting up return values */
-} mock_serial_read_until_t;
+    int call_count;
+    int return_values[20];
+    char buffer_values[20][1024];
+    int return_index;
+    char last_data[1024];
+} mock_serial_t;
 
-/** @brief Global mock state instance */
-extern mock_serial_read_until_t mock_serial_read_until;
-
-/**
- * @brief Mock implementation of serial_read_until function
- * 
- * This function replaces the real serial_read_until during testing.
- * It returns predefined values and copies predefined buffer contents
- * based on the mock state.
- * 
- * @param conn Connection handle (unused in mock)
- * @param buffer Buffer to store read data
- * @param max_len Maximum length of buffer
- * @param delimiter Delimiter string (unused in mock)
- * @return Number of bytes read, or 0 if no more predefined values
- */
-int mock_serial_read_until_func(void *conn, char *buffer, int max_len, const char *delimiter);
+extern mock_serial_t mock_serial_read;
+extern mock_serial_t mock_serial_write;
 
 /**
- * @brief Initialize the mock serial_read_until state
- * 
- * Resets all mock state variables to their initial values.
- * Call this before each test that uses the mock.
+ * @brief Initialize mock state
  */
-void mock_serial_read_until_init(void);
+#define MOCK_INIT(mock) \
+    do { \
+        (mock).call_count = 0; \
+        (mock).return_index = 0; \
+        memset((mock).return_values, 0, sizeof((mock).return_values)); \
+        memset((mock).buffer_values, 0, sizeof((mock).buffer_values)); \
+        memset((mock).last_data, 0, sizeof((mock).last_data)); \
+    } while(0)
 
 /**
- * @brief Set up a return value and buffer content for the mock function
- * 
- * Adds a return value and optional buffer content to the mock's predefined
- * responses. These will be returned on successive calls to the mock function.
- * 
- * @param return_value The return value to use (number of bytes "read")
- * @param buffer_content String to copy into the buffer (can be NULL)
+ * @brief Set up mock return values
  */
-void mock_serial_read_until_set_return(int return_value, const char *buffer_content);
+#define MOCK_SET_RETURN(mock, return_val, buffer_content) \
+    do { \
+        if ((mock).return_index < 20) { \
+            (mock).return_values[(mock).return_index] = (return_val); \
+            if ((buffer_content) != NULL) { \
+                strncpy((mock).buffer_values[(mock).return_index], (buffer_content), 1023); \
+            } \
+            (mock).return_index++; \
+        } \
+    } while(0)
 
-#endif // TEST_FRAMEWORK_H
+/**
+ * @brief Set up mock return values (read function)
+ */
+#define MOCK_READ_SET_RETURN(return_val, buffer_content) \
+    MOCK_SET_RETURN(mock_serial_read, return_val, buffer_content)
+
+/**
+ * @brief Set up mock return values (write function)
+ */
+#define MOCK_WRITE_SET_RETURN(return_val) \
+    MOCK_SET_RETURN(mock_serial_write, return_val, NULL)
+
+/**
+ * @brief Initialize all mocks
+ */
+#define MOCK_INIT_ALL() \
+    do { \
+        MOCK_INIT(mock_serial_read); \
+        MOCK_INIT(mock_serial_write); \
+    } while(0)
+
+// ============================================================================
+// Test Runner Functions
+// ============================================================================
+
+/**
+ * @brief Run all registered tests
+ */
+int run_all_tests(void);
+
+/**
+ * @brief Run tests in a specific suite
+ */
+int run_test_suite(const char *suite_name);
+
+/**
+ * @brief Get test statistics
+ */
+void print_test_stats(void);
+
+// ============================================================================
+// Test Fixture Helpers
+// ============================================================================
+
+/**
+ * @brief Define a test setup function
+ */
+#define TEST_SETUP(name) \
+    void test_setup_##name(void)
+
+/**
+ * @brief Define a test teardown function
+ */
+#define TEST_TEARDOWN(name) \
+    void test_teardown_##name(void)
+
+/**
+ * @brief Common test setup for serial tests
+ */
+TEST_SETUP(serial);
+
+/**
+ * @brief Common test teardown for serial tests
+ */
+TEST_TEARDOWN(serial);
+
+#endif // TEST_FRAMEWORK_V2_H

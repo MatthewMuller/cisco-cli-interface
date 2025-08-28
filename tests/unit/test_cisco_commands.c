@@ -45,6 +45,15 @@ TEST(get_directory_listing_mixed_file_types);
 TEST(get_directory_listing_long_filenames);
 TEST(get_directory_listing_malformed_output);
 TEST(get_directory_listing_memory_allocation_failure);
+TEST(delete_file_success);
+TEST(delete_file_send_command_failure);
+TEST(delete_file_no_confirmation_prompt);
+TEST(delete_file_confirmation_write_failure);
+TEST(delete_file_deletion_failed);
+TEST(delete_file_timeout_after_confirmation);
+TEST(delete_file_empty_file_path);
+TEST(delete_file_long_file_path);
+TEST(delete_file_special_characters_in_path);
 
 // Test registry - all test functions
 test_func_t test_registry[] = {
@@ -73,6 +82,15 @@ test_func_t test_registry[] = {
     test_get_directory_listing_long_filenames,
     test_get_directory_listing_malformed_output,
     test_get_directory_listing_memory_allocation_failure,
+    test_delete_file_success,
+    test_delete_file_send_command_failure,
+    test_delete_file_no_confirmation_prompt,
+    test_delete_file_confirmation_write_failure,
+    test_delete_file_deletion_failed,
+    test_delete_file_timeout_after_confirmation,
+    test_delete_file_empty_file_path,
+    test_delete_file_long_file_path,
+    test_delete_file_special_characters_in_path,
     NULL
 };
 
@@ -105,6 +123,15 @@ const char* test_names[] = {
     "get_directory_listing_long_filenames",
     "get_directory_listing_malformed_output",
     "get_directory_listing_memory_allocation_failure",
+    "delete_file_success",
+    "delete_file_send_command_failure",
+    "delete_file_no_confirmation_prompt",
+    "delete_file_confirmation_write_failure",
+    "delete_file_deletion_failed",
+    "delete_file_timeout_after_confirmation",
+    "delete_file_empty_file_path",
+    "delete_file_long_file_path",
+    "delete_file_special_characters_in_path",
     NULL
 };
 
@@ -139,6 +166,13 @@ static void setup_init_flash_tests(void) {
  * @brief Setup function for cisco_get_directory_listing tests
  */
 static void setup_get_directory_listing_tests(void) {
+    MOCK_INIT_ALL();
+}
+
+/**
+ * @brief Setup function for cisco_delete_file tests
+ */
+static void setup_delete_file_tests(void) {
     MOCK_INIT_ALL();
 }
 
@@ -754,6 +788,201 @@ TEST(get_directory_listing_memory_allocation_failure) {
             free(temp);
         }
     }
+    
+    return 1;
+}
+
+// ============================================================================
+// cisco_delete_file Tests
+// ============================================================================
+
+TEST(delete_file_success) {
+    serial_conn_t conn;
+    setup_delete_file_tests();
+    
+    // Set up mocks for successful file deletion
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(25, "Are you sure you want to delete"); // confirmation prompt
+    MOCK_WRITE_SET_RETURN(2); // serial_write succeeds for confirmation
+    MOCK_READ_SET_RETURN(15, "File deleted successfully"); // deletion success message
+    
+    int result = cisco_delete_file(&conn, "flash:/config.txt", 30);
+    
+    ASSERT_EQUAL(0, result);
+    ASSERT_EQUAL(2, mock_serial_write.call_count);
+    // The last write should be the confirmation "y\n"
+    ASSERT_STRING_EQUAL("y\n", mock_serial_write.last_data);
+    ASSERT_EQUAL(3, mock_serial_read.call_count);
+    
+    return 1;
+}
+
+TEST(delete_file_send_command_failure) {
+    serial_conn_t conn;
+    setup_delete_file_tests();
+    
+    // Set up mock to make cisco_send_command fail
+    MOCK_WRITE_SET_RETURN(-1); // serial_write fails
+    
+    int result = cisco_delete_file(&conn, "flash:/config.txt", 30);
+    
+    ASSERT_EQUAL(-1, result);
+    ASSERT_EQUAL(1, mock_serial_write.call_count);
+    ASSERT_STRING_EQUAL("delete flash:/config.txt\n", mock_serial_write.last_data);
+    ASSERT_EQUAL(0, mock_serial_read.call_count); // Should not be called if send_command fails
+    
+    return 1;
+}
+
+TEST(delete_file_no_confirmation_prompt) {
+    serial_conn_t conn;
+    setup_delete_file_tests();
+    
+    // Set up mocks - command succeeds but no confirmation prompt
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(20, "File not found or access denied"); // No confirmation prompt
+    
+    int result = cisco_delete_file(&conn, "flash:/nonexistent.txt", 30);
+    
+    ASSERT_EQUAL(-1, result);
+    ASSERT_EQUAL(1, mock_serial_write.call_count);
+    ASSERT_STRING_EQUAL("delete flash:/nonexistent.txt\n", mock_serial_write.last_data);
+    ASSERT_EQUAL(2, mock_serial_read.call_count);
+    
+    return 1;
+}
+
+TEST(delete_file_confirmation_write_failure) {
+    serial_conn_t conn;
+    setup_delete_file_tests();
+    
+    // Set up mocks - command succeeds, confirmation prompt, but write fails
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(25, "Are you sure you want to delete"); // confirmation prompt
+    MOCK_WRITE_SET_RETURN(-1); // serial_write fails for confirmation
+    
+    int result = cisco_delete_file(&conn, "flash:/config.txt", 30);
+    
+    ASSERT_EQUAL(-1, result);
+    ASSERT_EQUAL(2, mock_serial_write.call_count);
+    ASSERT_STRING_EQUAL("y\n", mock_serial_write.last_data);
+    ASSERT_EQUAL(2, mock_serial_read.call_count);
+    
+    return 1;
+}
+
+TEST(delete_file_deletion_failed) {
+    serial_conn_t conn;
+    setup_delete_file_tests();
+    
+    // Set up mocks - command succeeds, confirmation prompt, but deletion fails
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(25, "Are you sure you want to delete"); // confirmation prompt
+    MOCK_WRITE_SET_RETURN(2); // serial_write succeeds for confirmation
+    MOCK_READ_SET_RETURN(20, "Access denied - file cannot be removed"); // deletion failure message
+    
+    int result = cisco_delete_file(&conn, "flash:/protected.txt", 30);
+    
+    ASSERT_EQUAL(-1, result);
+    ASSERT_EQUAL(2, mock_serial_write.call_count);
+    ASSERT_STRING_EQUAL("y\n", mock_serial_write.last_data);
+    ASSERT_EQUAL(3, mock_serial_read.call_count);
+    
+    return 1;
+}
+
+TEST(delete_file_timeout_after_confirmation) {
+    serial_conn_t conn;
+    setup_delete_file_tests();
+    
+    // Set up mocks - command succeeds, confirmation prompt, but timeout after confirmation
+    MOCK_WRITE_SET_RETURN(15); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(25, "Are you sure you want to delete"); // confirmation prompt
+    MOCK_WRITE_SET_RETURN(2); // serial_write succeeds for confirmation
+    MOCK_READ_SET_RETURN(0, ""); // timeout/no response after confirmation
+    
+    int result = cisco_delete_file(&conn, "flash:/config.txt", 30);
+    
+    ASSERT_EQUAL(-1, result);
+    ASSERT_EQUAL(2, mock_serial_write.call_count);
+    ASSERT_STRING_EQUAL("y\n", mock_serial_write.last_data);
+    ASSERT_EQUAL(3, mock_serial_read.call_count);
+    
+    return 1;
+}
+
+TEST(delete_file_empty_file_path) {
+    serial_conn_t conn;
+    setup_delete_file_tests();
+    
+    // Set up mocks for empty file path
+    MOCK_WRITE_SET_RETURN(8); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(25, "Are you sure you want to delete"); // confirmation prompt
+    MOCK_WRITE_SET_RETURN(2); // serial_write succeeds for confirmation
+    MOCK_READ_SET_RETURN(15, "File deleted successfully"); // deletion success message
+    
+    int result = cisco_delete_file(&conn, "", 30);
+    
+    ASSERT_EQUAL(0, result);
+    ASSERT_EQUAL(2, mock_serial_write.call_count);
+    // The last write should be the confirmation "y\n"
+    ASSERT_STRING_EQUAL("y\n", mock_serial_write.last_data);
+    ASSERT_EQUAL(3, mock_serial_read.call_count);
+    
+    return 1;
+}
+
+TEST(delete_file_long_file_path) {
+    serial_conn_t conn;
+    setup_delete_file_tests();
+    
+    // Create a long file path (but within MAX_LINE_LEN)
+    char long_path[256];
+    memset(long_path, 'a', 255);
+    long_path[255] = '\0';
+    
+    // Set up mocks for long file path
+    MOCK_WRITE_SET_RETURN(260); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(25, "Are you sure you want to delete"); // confirmation prompt
+    MOCK_WRITE_SET_RETURN(2); // serial_write succeeds for confirmation
+    MOCK_READ_SET_RETURN(15, "File deleted successfully"); // deletion success message
+    
+    int result = cisco_delete_file(&conn, long_path, 30);
+    
+    ASSERT_EQUAL(0, result);
+    ASSERT_EQUAL(2, mock_serial_write.call_count);
+    // The last write should be the confirmation "y\n"
+    ASSERT_STRING_EQUAL("y\n", mock_serial_write.last_data);
+    ASSERT_EQUAL(3, mock_serial_read.call_count);
+    
+    return 1;
+}
+
+TEST(delete_file_special_characters_in_path) {
+    serial_conn_t conn;
+    setup_delete_file_tests();
+    
+    // Set up mocks for file path with special characters
+    MOCK_WRITE_SET_RETURN(25); // cisco_send_command succeeds
+    MOCK_READ_SET_RETURN(15, "Router# : "); // prompt found after command
+    MOCK_READ_SET_RETURN(25, "Are you sure you want to delete"); // confirmation prompt
+    MOCK_WRITE_SET_RETURN(2); // serial_write succeeds for confirmation
+    MOCK_READ_SET_RETURN(15, "File deleted successfully"); // deletion success message
+    
+    int result = cisco_delete_file(&conn, "flash:/backup/config@#$%.txt", 30);
+    
+    ASSERT_EQUAL(0, result);
+    ASSERT_EQUAL(2, mock_serial_write.call_count);
+    // The last write should be the confirmation "y\n"
+    ASSERT_STRING_EQUAL("y\n", mock_serial_write.last_data);
+    ASSERT_EQUAL(3, mock_serial_read.call_count);
     
     return 1;
 }

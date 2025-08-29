@@ -80,6 +80,9 @@ void file_tree_build_recursive(serial_conn_t *conn, dir_node_t *parent, const ch
 
 // Initializes and builds the root file tree structure
 void file_tree_build(serial_conn_t *conn, dir_node_t **root) {
+    // Validate input parameters
+    if (!root) return;
+    
     // Create root node
     *root = file_tree_create("flash:/", "flash:/", FILE_TYPE_DIRECTORY);
     if (!*root) return;

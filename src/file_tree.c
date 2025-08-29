@@ -1,5 +1,6 @@
 #include "cisco_cli.h"
 
+// Creates a new directory tree node with the given name, path, and type
 dir_node_t *file_tree_create(const char *name, const char *path, file_type_t type) {
     dir_node_t *node = malloc(sizeof(dir_node_t));
     if (!node) return NULL;
@@ -19,8 +20,9 @@ dir_node_t *file_tree_create(const char *name, const char *path, file_type_t typ
     node->next = NULL;
     
     return node;
-}
+} 
 
+// Adds a child node to a parent node in the tree
 void file_tree_add_child(dir_node_t *parent, dir_node_t *child) {
     if (!parent || !child) return;
     
@@ -38,6 +40,7 @@ void file_tree_add_child(dir_node_t *parent, dir_node_t *child) {
     }
 }
 
+// Recursively builds the file tree by fetching directory listings from the device
 void file_tree_build_recursive(serial_conn_t *conn, dir_node_t *parent, const char *path) {
     file_entry_t *files = NULL;
     int file_count = cisco_get_directory_listing(conn, path, &files, 3);
@@ -61,6 +64,7 @@ void file_tree_build_recursive(serial_conn_t *conn, dir_node_t *parent, const ch
     }
 }
 
+// Initializes and builds the root file tree structure
 void file_tree_build(serial_conn_t *conn, dir_node_t **root) {
     // Create root node
     *root = file_tree_create("flash:/", "flash:/", FILE_TYPE_DIRECTORY);
@@ -70,6 +74,7 @@ void file_tree_build(serial_conn_t *conn, dir_node_t **root) {
     file_tree_build_recursive(conn, *root, "flash:/");
 }
 
+// Recursively frees all memory allocated for the file tree
 void file_tree_free(dir_node_t *node) {
     if (!node) return;
     
@@ -85,6 +90,7 @@ void file_tree_free(dir_node_t *node) {
     free(node);
 }
 
+// Sets the selection state of a node and all its children
 void file_tree_select(dir_node_t *node, int selected) {
     if (!node) return;
     
@@ -100,6 +106,7 @@ void file_tree_select(dir_node_t *node, int selected) {
     }
 }
 
+// Counts the total number of selected nodes in the tree
 int file_tree_count_selected(dir_node_t *node) {
     if (!node) return 0;
     
@@ -115,6 +122,7 @@ int file_tree_count_selected(dir_node_t *node) {
     return count;
 }
 
+// Recursively deletes selected files and directories from the device
 void file_tree_delete_selected_recursive(serial_conn_t *conn, dir_node_t *node, int *success_count, int *fail_count) {
     if (!node) return;
     
@@ -146,6 +154,7 @@ void file_tree_delete_selected_recursive(serial_conn_t *conn, dir_node_t *node, 
     }
 }
 
+// Deletes all selected files and directories and reports results
 void file_tree_delete_selected(serial_conn_t *conn, dir_node_t *node) {
     int success_count = 0, fail_count = 0;
     
@@ -155,7 +164,7 @@ void file_tree_delete_selected(serial_conn_t *conn, dir_node_t *node) {
     printf("Deletion complete: %d successful, %d failed\n", success_count, fail_count);
 }
 
-// Utility function to get all nodes in a flat list for UI display
+// Recursively builds a flat list of visible nodes for UI display
 int file_tree_get_flat_list_recursive(dir_node_t *node, dir_node_t **list, int max_count, int *current_count) {
     if (!node || *current_count >= max_count) return *current_count;
     
@@ -173,6 +182,7 @@ int file_tree_get_flat_list_recursive(dir_node_t *node, dir_node_t **list, int m
     return *current_count;
 }
 
+// Creates a flat list of all visible nodes in the tree for UI rendering
 int file_tree_get_flat_list(dir_node_t *node, dir_node_t **list, int max_count) {
     int count = 0;
     return file_tree_get_flat_list_recursive(node, list, max_count, &count);

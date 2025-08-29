@@ -5,10 +5,19 @@ dir_node_t *file_tree_create(const char *name, const char *path, file_type_t typ
     dir_node_t *node = malloc(sizeof(dir_node_t));
     if (!node) return NULL;
     
-    strncpy(node->name, name, MAX_PATH_LEN - 1);
+    // Handle NULL parameters safely
+    if (name) {
+        strncpy(node->name, name, MAX_PATH_LEN - 1);
+    } else {
+        node->name[0] = '\0';
+    }
     node->name[MAX_PATH_LEN - 1] = '\0';
     
-    strncpy(node->path, path, MAX_PATH_LEN - 1);
+    if (path) {
+        strncpy(node->path, path, MAX_PATH_LEN - 1);
+    } else {
+        node->path[0] = '\0';
+    }
     node->path[MAX_PATH_LEN - 1] = '\0';
     
     node->type = type;

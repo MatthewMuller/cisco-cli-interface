@@ -51,6 +51,11 @@ void file_tree_add_child(dir_node_t *parent, dir_node_t *child) {
 
 // Recursively builds the file tree by fetching directory listings from the device
 void file_tree_build_recursive(serial_conn_t *conn, dir_node_t *parent, const char *path) {
+    // Validate input parameters
+    if (!conn || !parent || !path) {
+        return;
+    }
+    
     file_entry_t *files = NULL;
     int file_count = cisco_get_directory_listing(conn, path, &files, 3);
     

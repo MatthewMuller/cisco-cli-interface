@@ -132,6 +132,11 @@ int cisco_init_flash(serial_conn_t *conn, int timeout) {
  *          will occur if the returned list is not properly freed.
  */
 int cisco_get_directory_listing(serial_conn_t *conn, const char *path, file_entry_t **files, int timeout) {
+    // Validate input parameters
+    if (!conn || !path || !files) {
+        return -1;
+    }
+    
     char command[MAX_LINE_LEN];
     char buffer[MAX_LINE_LEN * 10]; // Large buffer for directory listing
     char *line, *saveptr;

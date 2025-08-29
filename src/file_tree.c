@@ -163,9 +163,9 @@ void file_tree_delete_selected_recursive(serial_conn_t *conn, dir_node_t *node, 
             result = cisco_delete_file(conn, node->path, 3);
         }
         
-        if (result == 0) {
+        if (result == 0 && success_count != NULL) {
             (*success_count)++;
-        } else {
+        } else if (result != 0 && fail_count != NULL) {
             (*fail_count)++;
         }
     }

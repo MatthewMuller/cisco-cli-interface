@@ -126,6 +126,26 @@ TEST(file_tree_build_memory_allocation_failure);
 TEST(file_tree_build_special_characters);
 TEST(file_tree_build_long_filenames);
 TEST(file_tree_build_nested_structure);
+TEST(file_tree_get_flat_list_recursive_null_node);
+TEST(file_tree_get_flat_list_recursive_null_list);
+TEST(file_tree_get_flat_list_recursive_null_current_count);
+TEST(file_tree_get_flat_list_recursive_single_node);
+TEST(file_tree_get_flat_list_recursive_single_node_expanded);
+TEST(file_tree_get_flat_list_recursive_single_node_collapsed);
+TEST(file_tree_get_flat_list_recursive_multiple_children_expanded);
+TEST(file_tree_get_flat_list_recursive_multiple_children_collapsed);
+TEST(file_tree_get_flat_list_recursive_nested_structure_expanded);
+TEST(file_tree_get_flat_list_recursive_nested_structure_partially_expanded);
+TEST(file_tree_get_flat_list_recursive_max_count_limit);
+TEST(file_tree_get_flat_list_recursive_max_count_exceeded);
+TEST(file_tree_get_flat_list_recursive_complex_tree_all_expanded);
+TEST(file_tree_get_flat_list_recursive_complex_tree_mixed_expansion);
+TEST(file_tree_get_flat_list_recursive_empty_tree);
+TEST(file_tree_get_flat_list_recursive_zero_max_count);
+TEST(file_tree_get_flat_list_recursive_negative_max_count);
+TEST(file_tree_get_flat_list_recursive_large_tree);
+TEST(file_tree_get_flat_list_recursive_mixed_file_types);
+TEST(file_tree_get_flat_list_recursive_deep_nesting);
 
 // Test registry - all test functions
 test_func_t test_registry[] = {
@@ -236,6 +256,26 @@ test_func_t test_registry[] = {
     test_file_tree_build_special_characters,
     test_file_tree_build_long_filenames,
     test_file_tree_build_nested_structure,
+    test_file_tree_get_flat_list_recursive_null_node,
+    test_file_tree_get_flat_list_recursive_null_list,
+    test_file_tree_get_flat_list_recursive_null_current_count,
+    test_file_tree_get_flat_list_recursive_single_node,
+    test_file_tree_get_flat_list_recursive_single_node_expanded,
+    test_file_tree_get_flat_list_recursive_single_node_collapsed,
+    test_file_tree_get_flat_list_recursive_multiple_children_expanded,
+    test_file_tree_get_flat_list_recursive_multiple_children_collapsed,
+    test_file_tree_get_flat_list_recursive_nested_structure_expanded,
+    test_file_tree_get_flat_list_recursive_nested_structure_partially_expanded,
+    test_file_tree_get_flat_list_recursive_max_count_limit,
+    test_file_tree_get_flat_list_recursive_max_count_exceeded,
+    test_file_tree_get_flat_list_recursive_complex_tree_all_expanded,
+    test_file_tree_get_flat_list_recursive_complex_tree_mixed_expansion,
+    test_file_tree_get_flat_list_recursive_empty_tree,
+    test_file_tree_get_flat_list_recursive_zero_max_count,
+    test_file_tree_get_flat_list_recursive_negative_max_count,
+    test_file_tree_get_flat_list_recursive_large_tree,
+    test_file_tree_get_flat_list_recursive_mixed_file_types,
+    test_file_tree_get_flat_list_recursive_deep_nesting,
     NULL
 };
 
@@ -350,6 +390,26 @@ const char* test_names[] = {
     "file_tree_build_special_characters",
     "file_tree_build_long_filenames",
     "file_tree_build_nested_structure",
+    "file_tree_get_flat_list_recursive_null_node",
+    "file_tree_get_flat_list_recursive_null_list",
+    "file_tree_get_flat_list_recursive_null_current_count",
+    "file_tree_get_flat_list_recursive_single_node",
+    "file_tree_get_flat_list_recursive_single_node_expanded",
+    "file_tree_get_flat_list_recursive_single_node_collapsed",
+    "file_tree_get_flat_list_recursive_multiple_children_expanded",
+    "file_tree_get_flat_list_recursive_multiple_children_collapsed",
+    "file_tree_get_flat_list_recursive_nested_structure_expanded",
+    "file_tree_get_flat_list_recursive_nested_structure_partially_expanded",
+    "file_tree_get_flat_list_recursive_max_count_limit",
+    "file_tree_get_flat_list_recursive_max_count_exceeded",
+    "file_tree_get_flat_list_recursive_complex_tree_all_expanded",
+    "file_tree_get_flat_list_recursive_complex_tree_mixed_expansion",
+    "file_tree_get_flat_list_recursive_empty_tree",
+    "file_tree_get_flat_list_recursive_zero_max_count",
+    "file_tree_get_flat_list_recursive_negative_max_count",
+    "file_tree_get_flat_list_recursive_large_tree",
+    "file_tree_get_flat_list_recursive_mixed_file_types",
+    "file_tree_get_flat_list_recursive_deep_nesting",
     NULL
 };
 
@@ -4324,6 +4384,677 @@ TEST(file_tree_delete_selected_long_paths) {
     
     // Clean up
     free(node);
+    
+    return 1;
+}
+
+// ============================================================================
+// file_tree_get_flat_list_recursive Tests
+// ============================================================================
+
+TEST(file_tree_get_flat_list_recursive_null_node) {
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    // Test with NULL node
+    int result = file_tree_get_flat_list_recursive(NULL, list, 10, &current_count);
+    
+    ASSERT_EQUAL(0, result);
+    ASSERT_EQUAL(0, current_count);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_null_list) {
+    dir_node_t *node = file_tree_create("test", "flash:/test", FILE_TYPE_REGULAR);
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(node);
+    
+    // Test with NULL list
+    int result = file_tree_get_flat_list_recursive(node, NULL, 10, &current_count);
+    
+    ASSERT_EQUAL(0, result);
+    ASSERT_EQUAL(0, current_count);
+    
+    // Clean up
+    free(node);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_null_current_count) {
+    dir_node_t *node = file_tree_create("test", "flash:/test", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    
+    ASSERT_NOT_NULL(node);
+    
+    // Test with NULL current_count
+    int result = file_tree_get_flat_list_recursive(node, list, 10, NULL);
+    
+    ASSERT_EQUAL(0, result);
+    
+    // Clean up
+    free(node);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_single_node) {
+    dir_node_t *node = file_tree_create("test", "flash:/test", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(node);
+    
+    // Test with single node
+    int result = file_tree_get_flat_list_recursive(node, list, 10, &current_count);
+    
+    ASSERT_EQUAL(1, result);
+    ASSERT_EQUAL(1, current_count);
+    ASSERT_EQUAL(node, list[0]);
+    
+    // Clean up
+    free(node);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_single_node_expanded) {
+    dir_node_t *parent = file_tree_create("parent", "flash:/parent", FILE_TYPE_DIRECTORY);
+    dir_node_t *child = file_tree_create("child", "flash:/parent/child", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(parent);
+    ASSERT_NOT_NULL(child);
+    
+    // Add child to parent
+    file_tree_add_child(parent, child);
+    
+    // Set parent as expanded
+    parent->expanded = 1;
+    
+    // Test with expanded parent
+    int result = file_tree_get_flat_list_recursive(parent, list, 10, &current_count);
+    
+    ASSERT_EQUAL(2, result);
+    ASSERT_EQUAL(2, current_count);
+    ASSERT_EQUAL(parent, list[0]);
+    ASSERT_EQUAL(child, list[1]);
+    
+    // Clean up
+    file_tree_free(parent);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_single_node_collapsed) {
+    dir_node_t *parent = file_tree_create("parent", "flash:/parent", FILE_TYPE_DIRECTORY);
+    dir_node_t *child = file_tree_create("child", "flash:/parent/child", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(parent);
+    ASSERT_NOT_NULL(child);
+    
+    // Add child to parent
+    file_tree_add_child(parent, child);
+    
+    // Set parent as collapsed (default state)
+    parent->expanded = 0;
+    
+    // Test with collapsed parent
+    int result = file_tree_get_flat_list_recursive(parent, list, 10, &current_count);
+    
+    ASSERT_EQUAL(1, result);
+    ASSERT_EQUAL(1, current_count);
+    ASSERT_EQUAL(parent, list[0]);
+    // Child should not be included
+    
+    // Clean up
+    file_tree_free(parent);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_multiple_children_expanded) {
+    dir_node_t *parent = file_tree_create("parent", "flash:/parent", FILE_TYPE_DIRECTORY);
+    dir_node_t *child1 = file_tree_create("child1", "flash:/parent/child1", FILE_TYPE_REGULAR);
+    dir_node_t *child2 = file_tree_create("child2", "flash:/parent/child2", FILE_TYPE_REGULAR);
+    dir_node_t *child3 = file_tree_create("child3", "flash:/parent/child3", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(parent);
+    ASSERT_NOT_NULL(child1);
+    ASSERT_NOT_NULL(child2);
+    ASSERT_NOT_NULL(child3);
+    
+    // Add children to parent
+    file_tree_add_child(parent, child1);
+    file_tree_add_child(parent, child2);
+    file_tree_add_child(parent, child3);
+    
+    // Set parent as expanded
+    parent->expanded = 1;
+    
+    // Test with expanded parent and multiple children
+    int result = file_tree_get_flat_list_recursive(parent, list, 10, &current_count);
+    
+    ASSERT_EQUAL(4, result);
+    ASSERT_EQUAL(4, current_count);
+    ASSERT_EQUAL(parent, list[0]);
+    ASSERT_EQUAL(child1, list[1]);
+    ASSERT_EQUAL(child2, list[2]);
+    ASSERT_EQUAL(child3, list[3]);
+    
+    // Clean up
+    file_tree_free(parent);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_multiple_children_collapsed) {
+    dir_node_t *parent = file_tree_create("parent", "flash:/parent", FILE_TYPE_DIRECTORY);
+    dir_node_t *child1 = file_tree_create("child1", "flash:/parent/child1", FILE_TYPE_REGULAR);
+    dir_node_t *child2 = file_tree_create("child2", "flash:/parent/child2", FILE_TYPE_REGULAR);
+    dir_node_t *child3 = file_tree_create("child3", "flash:/parent/child3", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(parent);
+    ASSERT_NOT_NULL(child1);
+    ASSERT_NOT_NULL(child2);
+    ASSERT_NOT_NULL(child3);
+    
+    // Add children to parent
+    file_tree_add_child(parent, child1);
+    file_tree_add_child(parent, child2);
+    file_tree_add_child(parent, child3);
+    
+    // Set parent as collapsed (default state)
+    parent->expanded = 0;
+    
+    // Test with collapsed parent and multiple children
+    int result = file_tree_get_flat_list_recursive(parent, list, 10, &current_count);
+    
+    ASSERT_EQUAL(1, result);
+    ASSERT_EQUAL(1, current_count);
+    ASSERT_EQUAL(parent, list[0]);
+    // Children should not be included
+    
+    // Clean up
+    file_tree_free(parent);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_nested_structure_expanded) {
+    dir_node_t *root = file_tree_create("root", "flash:/root", FILE_TYPE_DIRECTORY);
+    dir_node_t *dir1 = file_tree_create("dir1", "flash:/root/dir1", FILE_TYPE_DIRECTORY);
+    dir_node_t *dir2 = file_tree_create("dir2", "flash:/root/dir2", FILE_TYPE_DIRECTORY);
+    dir_node_t *file1 = file_tree_create("file1", "flash:/root/file1", FILE_TYPE_REGULAR);
+    dir_node_t *file2 = file_tree_create("file2", "flash:/root/dir1/file2", FILE_TYPE_REGULAR);
+    dir_node_t *file3 = file_tree_create("file3", "flash:/root/dir2/file3", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(root);
+    ASSERT_NOT_NULL(dir1);
+    ASSERT_NOT_NULL(dir2);
+    ASSERT_NOT_NULL(file1);
+    ASSERT_NOT_NULL(file2);
+    ASSERT_NOT_NULL(file3);
+    
+    // Build nested structure
+    file_tree_add_child(root, dir1);
+    file_tree_add_child(root, dir2);
+    file_tree_add_child(root, file1);
+    file_tree_add_child(dir1, file2);
+    file_tree_add_child(dir2, file3);
+    
+    // Set all directories as expanded
+    root->expanded = 1;
+    dir1->expanded = 1;
+    dir2->expanded = 1;
+    
+    // Test with fully expanded nested structure
+    int result = file_tree_get_flat_list_recursive(root, list, 10, &current_count);
+    
+    ASSERT_EQUAL(6, result);
+    ASSERT_EQUAL(6, current_count);
+    ASSERT_EQUAL(root, list[0]);
+    ASSERT_EQUAL(dir1, list[1]);
+    ASSERT_EQUAL(file2, list[2]);
+    ASSERT_EQUAL(dir2, list[3]);
+    ASSERT_EQUAL(file3, list[4]);
+    ASSERT_EQUAL(file1, list[5]);
+    
+    // Clean up
+    file_tree_free(root);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_nested_structure_partially_expanded) {
+    dir_node_t *root = file_tree_create("root", "flash:/root", FILE_TYPE_DIRECTORY);
+    dir_node_t *dir1 = file_tree_create("dir1", "flash:/root/dir1", FILE_TYPE_DIRECTORY);
+    dir_node_t *dir2 = file_tree_create("dir2", "flash:/root/dir2", FILE_TYPE_DIRECTORY);
+    dir_node_t *file1 = file_tree_create("file1", "flash:/root/file1", FILE_TYPE_REGULAR);
+    dir_node_t *file2 = file_tree_create("file2", "flash:/root/dir1/file2", FILE_TYPE_REGULAR);
+    dir_node_t *file3 = file_tree_create("file3", "flash:/root/dir2/file3", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(root);
+    ASSERT_NOT_NULL(dir1);
+    ASSERT_NOT_NULL(dir2);
+    ASSERT_NOT_NULL(file1);
+    ASSERT_NOT_NULL(file2);
+    ASSERT_NOT_NULL(file3);
+    
+    // Build nested structure
+    file_tree_add_child(root, dir1);
+    file_tree_add_child(root, dir2);
+    file_tree_add_child(root, file1);
+    file_tree_add_child(dir1, file2);
+    file_tree_add_child(dir2, file3);
+    
+    // Set only root as expanded, dir1 and dir2 collapsed
+    root->expanded = 1;
+    dir1->expanded = 0;
+    dir2->expanded = 0;
+    
+    // Test with partially expanded nested structure
+    int result = file_tree_get_flat_list_recursive(root, list, 10, &current_count);
+    
+    ASSERT_EQUAL(4, result);
+    ASSERT_EQUAL(4, current_count);
+    ASSERT_EQUAL(root, list[0]);
+    ASSERT_EQUAL(dir1, list[1]);
+    ASSERT_EQUAL(dir2, list[2]);
+    ASSERT_EQUAL(file1, list[3]);
+    // file2 and file3 should not be included because their parents are collapsed
+    
+    // Clean up
+    file_tree_free(root);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_max_count_limit) {
+    dir_node_t *parent = file_tree_create("parent", "flash:/parent", FILE_TYPE_DIRECTORY);
+    dir_node_t *child1 = file_tree_create("child1", "flash:/parent/child1", FILE_TYPE_REGULAR);
+    dir_node_t *child2 = file_tree_create("child2", "flash:/parent/child2", FILE_TYPE_REGULAR);
+    dir_node_t *child3 = file_tree_create("child3", "flash:/parent/child3", FILE_TYPE_REGULAR);
+    dir_node_t *list[3]; // Only space for 3 items
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(parent);
+    ASSERT_NOT_NULL(child1);
+    ASSERT_NOT_NULL(child2);
+    ASSERT_NOT_NULL(child3);
+    
+    // Add children to parent
+    file_tree_add_child(parent, child1);
+    file_tree_add_child(parent, child2);
+    file_tree_add_child(parent, child3);
+    
+    // Set parent as expanded
+    parent->expanded = 1;
+    
+    // Test with max_count limit (3 items: parent + 2 children)
+    int result = file_tree_get_flat_list_recursive(parent, list, 3, &current_count);
+    
+    ASSERT_EQUAL(3, result);
+    ASSERT_EQUAL(3, current_count);
+    ASSERT_EQUAL(parent, list[0]);
+    ASSERT_EQUAL(child1, list[1]);
+    ASSERT_EQUAL(child2, list[2]);
+    // child3 should not be included due to max_count limit
+    
+    // Clean up
+    file_tree_free(parent);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_max_count_exceeded) {
+    dir_node_t *parent = file_tree_create("parent", "flash:/parent", FILE_TYPE_DIRECTORY);
+    dir_node_t *child1 = file_tree_create("child1", "flash:/parent/child1", FILE_TYPE_REGULAR);
+    dir_node_t *child2 = file_tree_create("child2", "flash:/parent/child2", FILE_TYPE_REGULAR);
+    dir_node_t *child3 = file_tree_create("child3", "flash:/parent/child3", FILE_TYPE_REGULAR);
+    dir_node_t *list[2]; // Only space for 2 items
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(parent);
+    ASSERT_NOT_NULL(child1);
+    ASSERT_NOT_NULL(child2);
+    ASSERT_NOT_NULL(child3);
+    
+    // Add children to parent
+    file_tree_add_child(parent, child1);
+    file_tree_add_child(parent, child2);
+    file_tree_add_child(parent, child3);
+    
+    // Set parent as expanded
+    parent->expanded = 1;
+    
+    // Test with max_count exceeded (only 2 items: parent + 1 child)
+    int result = file_tree_get_flat_list_recursive(parent, list, 2, &current_count);
+    
+    ASSERT_EQUAL(2, result);
+    ASSERT_EQUAL(2, current_count);
+    ASSERT_EQUAL(parent, list[0]);
+    ASSERT_EQUAL(child1, list[1]);
+    // child2 and child3 should not be included due to max_count limit
+    
+    // Clean up
+    file_tree_free(parent);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_complex_tree_all_expanded) {
+    dir_node_t *root = file_tree_create("root", "flash:/root", FILE_TYPE_DIRECTORY);
+    dir_node_t *dir1 = file_tree_create("dir1", "flash:/root/dir1", FILE_TYPE_DIRECTORY);
+    dir_node_t *dir2 = file_tree_create("dir2", "flash:/root/dir2", FILE_TYPE_DIRECTORY);
+    dir_node_t *subdir1 = file_tree_create("subdir1", "flash:/root/dir1/subdir1", FILE_TYPE_DIRECTORY);
+    dir_node_t *file1 = file_tree_create("file1", "flash:/root/file1", FILE_TYPE_REGULAR);
+    dir_node_t *file2 = file_tree_create("file2", "flash:/root/dir1/file2", FILE_TYPE_REGULAR);
+    dir_node_t *file3 = file_tree_create("file3", "flash:/root/dir2/file3", FILE_TYPE_REGULAR);
+    dir_node_t *file4 = file_tree_create("file4", "flash:/root/dir1/subdir1/file4", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(root);
+    ASSERT_NOT_NULL(dir1);
+    ASSERT_NOT_NULL(dir2);
+    ASSERT_NOT_NULL(subdir1);
+    ASSERT_NOT_NULL(file1);
+    ASSERT_NOT_NULL(file2);
+    ASSERT_NOT_NULL(file3);
+    ASSERT_NOT_NULL(file4);
+    
+    // Build complex tree structure
+    file_tree_add_child(root, dir1);
+    file_tree_add_child(root, dir2);
+    file_tree_add_child(root, file1);
+    file_tree_add_child(dir1, file2);
+    file_tree_add_child(dir1, subdir1);
+    file_tree_add_child(dir2, file3);
+    file_tree_add_child(subdir1, file4);
+    
+    // Set all directories as expanded
+    root->expanded = 1;
+    dir1->expanded = 1;
+    dir2->expanded = 1;
+    subdir1->expanded = 1;
+    
+    // Test with fully expanded complex tree
+    int result = file_tree_get_flat_list_recursive(root, list, 10, &current_count);
+    
+    ASSERT_EQUAL(8, result);
+    ASSERT_EQUAL(8, current_count);
+    ASSERT_EQUAL(root, list[0]);
+    ASSERT_EQUAL(dir1, list[1]);
+    ASSERT_EQUAL(file2, list[2]);
+    ASSERT_EQUAL(subdir1, list[3]);
+    ASSERT_EQUAL(file4, list[4]);
+    ASSERT_EQUAL(dir2, list[5]);
+    ASSERT_EQUAL(file3, list[6]);
+    ASSERT_EQUAL(file1, list[7]);
+    
+    // Clean up
+    file_tree_free(root);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_complex_tree_mixed_expansion) {
+    dir_node_t *root = file_tree_create("root", "flash:/root", FILE_TYPE_DIRECTORY);
+    dir_node_t *dir1 = file_tree_create("dir1", "flash:/root/dir1", FILE_TYPE_DIRECTORY);
+    dir_node_t *dir2 = file_tree_create("dir2", "flash:/root/dir2", FILE_TYPE_DIRECTORY);
+    dir_node_t *subdir1 = file_tree_create("subdir1", "flash:/root/dir1/subdir1", FILE_TYPE_DIRECTORY);
+    dir_node_t *file1 = file_tree_create("file1", "flash:/root/file1", FILE_TYPE_REGULAR);
+    dir_node_t *file2 = file_tree_create("file2", "flash:/root/dir1/file2", FILE_TYPE_REGULAR);
+    dir_node_t *file3 = file_tree_create("file3", "flash:/root/dir2/file3", FILE_TYPE_REGULAR);
+    dir_node_t *file4 = file_tree_create("file4", "flash:/root/dir1/subdir1/file4", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(root);
+    ASSERT_NOT_NULL(dir1);
+    ASSERT_NOT_NULL(dir2);
+    ASSERT_NOT_NULL(subdir1);
+    ASSERT_NOT_NULL(file1);
+    ASSERT_NOT_NULL(file2);
+    ASSERT_NOT_NULL(file3);
+    ASSERT_NOT_NULL(file4);
+    
+    // Build complex tree structure
+    file_tree_add_child(root, dir1);
+    file_tree_add_child(root, dir2);
+    file_tree_add_child(root, file1);
+    file_tree_add_child(dir1, file2);
+    file_tree_add_child(dir1, subdir1);
+    file_tree_add_child(dir2, file3);
+    file_tree_add_child(subdir1, file4);
+    
+    // Set mixed expansion: root expanded, dir1 expanded, dir2 collapsed, subdir1 collapsed
+    root->expanded = 1;
+    dir1->expanded = 1;
+    dir2->expanded = 0;
+    subdir1->expanded = 0;
+    
+    // Test with mixed expansion
+    int result = file_tree_get_flat_list_recursive(root, list, 10, &current_count);
+    
+    ASSERT_EQUAL(6, result);
+    ASSERT_EQUAL(6, current_count);
+    ASSERT_EQUAL(root, list[0]);
+    ASSERT_EQUAL(dir1, list[1]);
+    ASSERT_EQUAL(file2, list[2]);
+    ASSERT_EQUAL(subdir1, list[3]);
+    ASSERT_EQUAL(dir2, list[4]);
+    ASSERT_EQUAL(file1, list[5]);
+    // file3 should not be included because dir2 is collapsed
+    // file4 should not be included because subdir1 is collapsed
+    
+    // Clean up
+    file_tree_free(root);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_empty_tree) {
+    dir_node_t *node = file_tree_create("empty", "flash:/empty", FILE_TYPE_DIRECTORY);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(node);
+    
+    // Verify it has no children
+    ASSERT_NULL(node->children);
+    
+    // Test with empty tree (no children)
+    int result = file_tree_get_flat_list_recursive(node, list, 10, &current_count);
+    
+    ASSERT_EQUAL(1, result);
+    ASSERT_EQUAL(1, current_count);
+    ASSERT_EQUAL(node, list[0]);
+    
+    // Clean up
+    free(node);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_zero_max_count) {
+    dir_node_t *node = file_tree_create("test", "flash:/test", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(node);
+    
+    // Test with zero max_count
+    int result = file_tree_get_flat_list_recursive(node, list, 0, &current_count);
+    
+    ASSERT_EQUAL(0, result);
+    ASSERT_EQUAL(0, current_count);
+    
+    // Clean up
+    free(node);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_negative_max_count) {
+    dir_node_t *node = file_tree_create("test", "flash:/test", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(node);
+    
+    // Test with negative max_count
+    int result = file_tree_get_flat_list_recursive(node, list, -1, &current_count);
+    
+    ASSERT_EQUAL(0, result);
+    ASSERT_EQUAL(0, current_count);
+    
+    // Clean up
+    free(node);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_large_tree) {
+    dir_node_t *root = file_tree_create("root", "flash:/root", FILE_TYPE_DIRECTORY);
+    dir_node_t *list[20];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(root);
+    
+    // Create a large tree with many children
+    for (int i = 0; i < 15; i++) {
+        char name[32], path[64];
+        snprintf(name, sizeof(name), "file%d", i);
+        snprintf(path, sizeof(path), "flash:/root/file%d", i);
+        
+        dir_node_t *child = file_tree_create(name, path, FILE_TYPE_REGULAR);
+        ASSERT_NOT_NULL(child);
+        file_tree_add_child(root, child);
+    }
+    
+    // Set root as expanded
+    root->expanded = 1;
+    
+    // Test with large tree
+    int result = file_tree_get_flat_list_recursive(root, list, 20, &current_count);
+    
+    ASSERT_EQUAL(16, result); // root + 15 children
+    ASSERT_EQUAL(16, current_count);
+    ASSERT_EQUAL(root, list[0]);
+    
+    // Verify all children are included
+    for (int i = 1; i < 16; i++) {
+        ASSERT_NOT_NULL(list[i]);
+    }
+    
+    // Clean up
+    file_tree_free(root);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_mixed_file_types) {
+    dir_node_t *root = file_tree_create("root", "flash:/root", FILE_TYPE_DIRECTORY);
+    dir_node_t *dir1 = file_tree_create("dir1", "flash:/root/dir1", FILE_TYPE_DIRECTORY);
+    dir_node_t *file1 = file_tree_create("file1.txt", "flash:/root/file1.txt", FILE_TYPE_REGULAR);
+    dir_node_t *file2 = file_tree_create("file2.bin", "flash:/root/file2.bin", FILE_TYPE_BINARY);
+    dir_node_t *file3 = file_tree_create("file3.txt", "flash:/root/dir1/file3.txt", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(root);
+    ASSERT_NOT_NULL(dir1);
+    ASSERT_NOT_NULL(file1);
+    ASSERT_NOT_NULL(file2);
+    ASSERT_NOT_NULL(file3);
+    
+    // Build tree with mixed file types
+    file_tree_add_child(root, dir1);
+    file_tree_add_child(root, file1);
+    file_tree_add_child(root, file2);
+    file_tree_add_child(dir1, file3);
+    
+    // Set root as expanded
+    root->expanded = 1;
+    
+    // Test with mixed file types
+    int result = file_tree_get_flat_list_recursive(root, list, 10, &current_count);
+    
+    ASSERT_EQUAL(4, result);
+    ASSERT_EQUAL(4, current_count);
+    ASSERT_EQUAL(root, list[0]);
+    ASSERT_EQUAL(dir1, list[1]);
+    ASSERT_EQUAL(file1, list[2]);
+    ASSERT_EQUAL(file2, list[3]);
+    // file3 should not be included because dir1 is collapsed
+    
+    // Verify file types are preserved
+    ASSERT_EQUAL(FILE_TYPE_DIRECTORY, list[0]->type);
+    ASSERT_EQUAL(FILE_TYPE_DIRECTORY, list[1]->type);
+    ASSERT_EQUAL(FILE_TYPE_REGULAR, list[2]->type);
+    ASSERT_EQUAL(FILE_TYPE_BINARY, list[3]->type);
+    
+    // Clean up
+    file_tree_free(root);
+    
+    return 1;
+}
+
+TEST(file_tree_get_flat_list_recursive_deep_nesting) {
+    dir_node_t *level0 = file_tree_create("level0", "flash:/level0", FILE_TYPE_DIRECTORY);
+    dir_node_t *level1 = file_tree_create("level1", "flash:/level0/level1", FILE_TYPE_DIRECTORY);
+    dir_node_t *level2 = file_tree_create("level2", "flash:/level0/level1/level2", FILE_TYPE_DIRECTORY);
+    dir_node_t *level3 = file_tree_create("level3", "flash:/level0/level1/level2/level3", FILE_TYPE_DIRECTORY);
+    dir_node_t *file = file_tree_create("file.txt", "flash:/level0/level1/level2/level3/file.txt", FILE_TYPE_REGULAR);
+    dir_node_t *list[10];
+    int current_count = 0;
+    
+    ASSERT_NOT_NULL(level0);
+    ASSERT_NOT_NULL(level1);
+    ASSERT_NOT_NULL(level2);
+    ASSERT_NOT_NULL(level3);
+    ASSERT_NOT_NULL(file);
+    
+    // Build deep nested structure
+    file_tree_add_child(level0, level1);
+    file_tree_add_child(level1, level2);
+    file_tree_add_child(level2, level3);
+    file_tree_add_child(level3, file);
+    
+    // Set all directories as expanded
+    level0->expanded = 1;
+    level1->expanded = 1;
+    level2->expanded = 1;
+    level3->expanded = 1;
+    
+    // Test with deep nesting
+    int result = file_tree_get_flat_list_recursive(level0, list, 10, &current_count);
+    
+    ASSERT_EQUAL(5, result);
+    ASSERT_EQUAL(5, current_count);
+    ASSERT_EQUAL(level0, list[0]);
+    ASSERT_EQUAL(level1, list[1]);
+    ASSERT_EQUAL(level2, list[2]);
+    ASSERT_EQUAL(level3, list[3]);
+    ASSERT_EQUAL(file, list[4]);
+    
+    // Clean up
+    file_tree_free(level0);
     
     return 1;
 }

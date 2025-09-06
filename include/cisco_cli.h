@@ -123,6 +123,7 @@ void file_tree_select(dir_node_t *node, int selected);
 int file_tree_count_selected(dir_node_t *node);
 void file_tree_delete_selected_recursive(serial_conn_t *conn, dir_node_t *node, int *success_count, int *fail_count);
 void file_tree_delete_selected(serial_conn_t *conn, dir_node_t *node);
+int file_tree_get_flat_list_recursive(dir_node_t *node, dir_node_t **list, int max_count, int *current_count);
 int file_tree_get_flat_list(dir_node_t *node, dir_node_t **list, int max_count);
 
 // UI functions

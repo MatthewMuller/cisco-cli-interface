@@ -183,11 +183,13 @@ void file_tree_delete_selected(serial_conn_t *conn, dir_node_t *node) {
 
 // Recursively builds a flat list of visible nodes for UI display
 int file_tree_get_flat_list_recursive(dir_node_t *node, dir_node_t **list, int max_count, int *current_count) {
-    if (!node || *current_count >= max_count) return *current_count;
+    if (!node || !list || !current_count || *current_count >= max_count) return 0;
     
+    // Always include the current node in the list
     list[*current_count] = node;
     (*current_count)++;
     
+    // Only include children if the current node is expanded
     if (node->expanded) {
         dir_node_t *child = node->children;
         while (child != NULL && *current_count < max_count) {

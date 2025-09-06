@@ -1221,7 +1221,7 @@ TEST(delete_directory_special_characters_in_path) {
 // ============================================================================
 
 int main(void) {
-    printf("Running cisco_commands unit tests (v2)...\n");
+    printf("Running cisco_commands unit tests...\n");
     
     int result = run_all_tests();
     

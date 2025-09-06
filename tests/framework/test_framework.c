@@ -14,6 +14,9 @@
 
 #include "test_framework.h"
 #include "../include/cisco_cli.h"
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
 
 // ============================================================================
 // Mock Framework Implementation
@@ -150,7 +153,13 @@ static int run_single_test(const char *test_name, test_func_t test_func) {
     printf("  Running: %s", test_name);
     fflush(stdout);
     
+    // Suppress stdout during test execution to avoid printf output from functions under test
+    suppress_stdout();
+    
     int result = test_func();
+    
+    // Restore stdout after test execution
+    restore_stdout();
     
     if (result) {
         printf(" ✓ PASS\n");
@@ -218,6 +227,47 @@ int run_test_suite(const char *suite_name) {
     // For now, run all tests since we don't have suite organization yet
     // In a full implementation, you'd filter by suite
     return run_all_tests();
+}
+
+// ============================================================================
+// Output Suppression Functions
+// ============================================================================
+
+// Global variables to store original stdout
+static int original_stdout_fd = -1;
+static int stdout_suppressed = 0;
+
+/**
+ * @brief Suppress stdout output during test execution
+ */
+void suppress_stdout(void) {
+    if (!stdout_suppressed) {
+        // Store the original stdout file descriptor
+        original_stdout_fd = dup(STDOUT_FILENO);
+        
+        // Redirect stdout to /dev/null to suppress output
+        freopen("/dev/null", "w", stdout);
+        stdout_suppressed = 1;
+    }
+}
+
+/**
+ * @brief Restore stdout output after test execution
+ */
+void restore_stdout(void) {
+    if (stdout_suppressed && original_stdout_fd != -1) {
+        // Close the current stdout (which points to /dev/null)
+        fclose(stdout);
+        
+        // Restore the original stdout file descriptor
+        dup2(original_stdout_fd, STDOUT_FILENO);
+        close(original_stdout_fd);
+        original_stdout_fd = -1;
+        
+        // Reopen stdout as a FILE* for the restored file descriptor
+        stdout = fopen("/dev/stdout", "w");
+        stdout_suppressed = 0;
+    }
 }
 
 // ============================================================================

@@ -281,4 +281,18 @@ TEST_SETUP(serial);
  */
 TEST_TEARDOWN(serial);
 
+// ============================================================================
+// Output Suppression Functions
+// ============================================================================
+
+/**
+ * @brief Suppress stdout output during test execution
+ */
+void suppress_stdout(void);
+
+/**
+ * @brief Restore stdout output after test execution
+ */
+void restore_stdout(void);
+
 #endif // TEST_FRAMEWORK_V2_H

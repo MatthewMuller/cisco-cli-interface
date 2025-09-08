@@ -82,14 +82,14 @@ Install dependencies directly on your system.
    # Log out and back in for changes to take effect
    ```
 
-### Option 3: Automated Installation Script
+### Option 3: Manual Build
 
-Use the provided installation script for a guided setup.
+Build the application manually using the Makefile.
 
 ```bash
 git clone <repository-url>
 cd cisco-cli-interface
-./scripts/install.sh
+make clean && make
 ```
 
 ## Usage
@@ -236,7 +236,7 @@ This project follows a structured branching strategy for organized development:
 1. Create feature branch from `main`
 2. Make changes with conventional commit messages
 3. Submit pull request to `main`
-5. Feature branche merged to `main` for production releases
+5. Feature branch merged to `main` for production releases
 
 ## License
 

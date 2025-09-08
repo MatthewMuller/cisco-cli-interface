@@ -35,7 +35,11 @@
 *.i*86
 *.x86_64
 *.hex
-#build/cisco-cli-interface
+build/cisco-cli-interface
+
+# Test executables
+test_cisco_commands
+test_file_tree
 
 # Build directory
 scripts/build/

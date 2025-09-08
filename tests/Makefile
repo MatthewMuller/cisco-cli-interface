@@ -1,16 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99 -I../include
-LDFLAGS = -lpthread -Wl,--gc-sections
-
-# Source files for the streamlined framework
-TEST_FRAMEWORK_SRC = framework/test_framework.c
-TEST_SRC = unit/test_cisco_commands.c unit/test_file_tree.c
-SOURCE_SRC = ../src/cisco_commands.c ../src/file_tree.c
-
-# Object files
-TEST_FRAMEWORK_OBJ = $(TEST_FRAMEWORK_SRC:.c=.o)
-TEST_OBJ = $(TEST_SRC:.c=.o)
-SOURCE_OBJ = $(SOURCE_SRC:.c=.o)
+LIBS = -lpthread -Wl,--gc-sections
 
 # Test executables
 TEST_EXEC = test_cisco_commands
@@ -20,28 +10,14 @@ FILE_TREE_TEST_EXEC = test_file_tree
 all: $(TEST_EXEC) $(FILE_TREE_TEST_EXEC)
 
 # Build test executables
-$(TEST_EXEC): $(TEST_FRAMEWORK_OBJ) unit/test_cisco_commands.o ../src/cisco_commands.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+$(TEST_EXEC): framework/test_framework.o unit/test_cisco_commands.o ../src/cisco_commands.o
+	$(CC) $^ -o $@ $(LIBS)
 
-$(FILE_TREE_TEST_EXEC): $(TEST_FRAMEWORK_OBJ) unit/test_file_tree.o ../src/file_tree.o ../src/cisco_commands.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+$(FILE_TREE_TEST_EXEC): framework/test_framework.o unit/test_file_tree.o ../src/file_tree.o ../src/cisco_commands.o
+	$(CC) $^ -o $@ $(LIBS)
 
-# Compile test framework
-$(TEST_FRAMEWORK_OBJ): $(TEST_FRAMEWORK_SRC) framework/test_framework.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Compile test files
-unit/test_cisco_commands.o: unit/test_cisco_commands.c framework/test_framework.h ../include/cisco_cli.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-unit/test_file_tree.o: unit/test_file_tree.c framework/test_framework.h ../include/cisco_cli.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Compile source files
-../src/cisco_commands.o: ../src/cisco_commands.c ../include/cisco_cli.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-../src/file_tree.o: ../src/file_tree.c ../include/cisco_cli.h
+# Pattern rules for compilation
+%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Run tests
@@ -60,7 +36,7 @@ test-verbose: $(TEST_EXEC) $(FILE_TREE_TEST_EXEC)
 
 # Clean
 clean:
-	rm -f $(TEST_FRAMEWORK_OBJ) unit/*.o ../src/*.o $(TEST_EXEC) $(FILE_TREE_TEST_EXEC)
+	rm -f framework/*.o unit/*.o ../src/*.o $(TEST_EXEC) $(FILE_TREE_TEST_EXEC)
 
 # Help
 help:

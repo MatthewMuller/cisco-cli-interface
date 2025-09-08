@@ -74,7 +74,7 @@ The `./scripts/dev-setup.sh` script is the **preferred method** for building bin
 ./scripts/dev-setup.sh shell
 
 # Build the application in container and copy binary to host
-./scripts/dev-setup.sh compile
+./scripts/dev-setup.sh debug
 
 # Run unit tests in container
 ./scripts/dev-setup.sh test
@@ -93,7 +93,7 @@ The `./scripts/dev-setup.sh` script is the **preferred method** for building bin
 
 1. **Initial Setup**: Run `./scripts/dev-setup.sh build` to create the Docker environment
 2. **Development**: Use `./scripts/dev-setup.sh shell` for interactive development
-3. **Building**: Use `./scripts/dev-setup.sh compile` to build the application
+3. **Building**: Use `./scripts/dev-setup.sh debug` to build the application with debug symbols
 4. **Testing**: Use `./scripts/dev-setup.sh test` to run unit tests
 5. **Cleanup**: Use `./scripts/dev-setup.sh clean` when done or to reset environment
 
@@ -103,7 +103,7 @@ The `./scripts/dev-setup.sh` script is the **preferred method** for building bin
 
 1. **Clean first**: Run `./scripts/dev-setup.sh clean` to remove old containers and images
 2. **Rebuild environment**: Run `./scripts/dev-setup.sh build` to create fresh container with updated code
-3. **Compile**: Run `./scripts/dev-setup.sh compile` to build the application
+3. **Compile**: Run `./scripts/dev-setup.sh debug` to build the application with debug symbols
 4. **Test**: Run `./scripts/dev-setup.sh test` to verify changes
 
 This ensures that:
@@ -167,8 +167,8 @@ The script automatically handles:
 
 ## Current Branch & Development Status
 
-- **Current branch**: `build/add-debug-env` (clean working tree)
-- **Development focus**: Debug environment improvements
+- **Current branch**: `refactor/cleanup-tech-debt` (clean working tree)
+- **Development focus**: Code cleanup and technical debt reduction
 - **Testing status**: Unit tests implemented for core functions
 - **Documentation**: Comprehensive README and development guides
 

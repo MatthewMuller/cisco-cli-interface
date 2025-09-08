@@ -16,23 +16,19 @@ This directory contains VS Code/Cursor IDE configuration files for debugging the
 
 3. **Start debugging in Cursor IDE:**
    - Press `F5` or go to Run and Debug panel
-   - Select "Debug Cisco CLI (Local)" configuration
+   - The "Debug Cisco CLI" configuration will be used automatically
    - Set breakpoints in your code
    - Start debugging!
 
 ## Debug Configurations
 
-### 1. Debug Cisco CLI (Local)
-- **Purpose**: Debug the application built locally on your host system
-- **Use case**: When you want to debug without Docker overhead
-- **Requirements**: Local build tools and dependencies installed
+### 1. Debug Cisco CLI
+- **Purpose**: Debug the application built using dev-setup.sh
+- **Use case**: Primary debugging configuration for F5 key
+- **Requirements**: Docker environment and debug build from dev-setup.sh
+- **Pre-launch**: Automatically runs build-debug task
 
-### 2. Debug Cisco CLI (Docker)
-- **Purpose**: Debug the application built inside Docker container
-- **Use case**: When you want consistent environment across different systems
-- **Requirements**: Docker and the debug build from dev-setup.sh
-
-### 3. Attach to Cisco CLI Process
+### 2. Attach to Cisco CLI Process
 - **Purpose**: Attach debugger to a running process
 - **Use case**: When you need to debug a process that's already running
 - **Requirements**: Process must be running with debug symbols
@@ -41,12 +37,12 @@ This directory contains VS Code/Cursor IDE configuration files for debugging the
 
 The following tasks are available in the Command Palette (`Ctrl+Shift+P`):
 
-- **build-debug**: Build with debug symbols (default build task)
-- **build-release**: Build optimized release version
-- **docker-build-debug**: Build debug version in Docker
-- **clean**: Clean build artifacts
+- **build-debug**: Build with debug symbols using dev-setup.sh (default build task)
+- **build-release**: Build optimized release version using dev-setup.sh
+- **setup-environment**: Build the Docker development environment
+- **clean**: Clean Docker resources and build artifacts
 - **run-tests**: Run unit tests in Docker
-- **docker-shell**: Start interactive Docker development shell
+- **dev-shell**: Start interactive Docker development shell
 
 ## Debug Features
 

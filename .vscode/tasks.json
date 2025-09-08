@@ -4,48 +4,6 @@
         {
             "label": "build-debug",
             "type": "shell",
-            "command": "make",
-            "args": [
-                "debug"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": true,
-                "clear": false
-            },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "detail": "Build the Cisco CLI Interface with debug symbols"
-        },
-        {
-            "label": "build-release",
-            "type": "shell",
-            "command": "make",
-            "args": [
-                "release"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": true,
-                "clear": false
-            },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "detail": "Build the Cisco CLI Interface for release"
-        },
-        {
-            "label": "docker-build-debug",
-            "type": "shell",
             "command": "./scripts/dev-setup.sh",
             "args": [
                 "debug"
@@ -65,12 +23,51 @@
             "problemMatcher": [
                 "$gcc"
             ],
-            "detail": "Build the Cisco CLI Interface with debug symbols in Docker"
+            "detail": "Build the Cisco CLI Interface with debug symbols using dev-setup.sh"
+        },
+        {
+            "label": "build-release",
+            "type": "shell",
+            "command": "./scripts/dev-setup.sh",
+            "args": [
+                "compile"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build the Cisco CLI Interface for release using dev-setup.sh"
+        },
+        {
+            "label": "setup-environment",
+            "type": "shell",
+            "command": "./scripts/dev-setup.sh",
+            "args": [
+                "build"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "detail": "Build the Docker development environment"
         },
         {
             "label": "clean",
             "type": "shell",
-            "command": "make",
+            "command": "./scripts/dev-setup.sh",
             "args": [
                 "clean"
             ],
@@ -83,7 +80,7 @@
                 "showReuseMessage": true,
                 "clear": false
             },
-            "detail": "Clean build artifacts"
+            "detail": "Clean Docker resources and build artifacts"
         },
         {
             "label": "run-tests",
@@ -104,7 +101,7 @@
             "detail": "Run unit tests in Docker"
         },
         {
-            "label": "docker-shell",
+            "label": "dev-shell",
             "type": "shell",
             "command": "./scripts/dev-setup.sh",
             "args": [

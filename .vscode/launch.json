@@ -6,7 +6,9 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/cisco-cli-interface",
-            "args": [],
+            "args": [
+                "/dev/ttyUSB0"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [
@@ -42,7 +44,9 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "/app/build/cisco-cli-interface",
-            "args": [],
+            "args": [
+                "/dev/ttyUSB0"
+            ],
             "stopAtEntry": false,
             "cwd": "/app",
             "environment": [

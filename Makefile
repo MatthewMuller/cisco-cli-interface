@@ -32,4 +32,4 @@ clean:
 
 install-deps:
 	sudo apt-get update
-	sudo apt-get install -y libncurses5-dev libncursesw5-dev 
+	sudo apt-get install -y libncurses5-dev libncursesw5-dev

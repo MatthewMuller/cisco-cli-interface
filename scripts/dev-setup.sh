@@ -36,7 +36,7 @@ check_docker() {
         print_status "Visit: https://docs.docker.com/get-docker/"
         exit 1
     fi
-    
+
     # Check for Docker Compose V2 (preferred) or V1
     if docker compose version &> /dev/null; then
         DOCKER_COMPOSE_CMD="docker compose"
@@ -67,7 +67,7 @@ dev_shell() {
 build_app() {
     print_status "Building application in container..."
     docker run --rm cisco-cli-interface-cisco-cli-dev:latest bash -c "cd /app && make clean && make"
-    
+
     if [ $? -eq 0 ]; then
         print_status "Copying binary to host build directory..."
         mkdir -p build
@@ -84,7 +84,7 @@ build_app() {
 build_debug() {
     print_status "Building debug version of application in container..."
     docker run --rm cisco-cli-interface-cisco-cli-dev:latest bash -c "cd /app && make clean && make debug"
-    
+
     if [ $? -eq 0 ]; then
         print_status "Copying debug binary to host build directory..."
         mkdir -p build
@@ -154,7 +154,7 @@ show_help() {
 # Main script logic
 main() {
     check_docker
-    
+
     case "${1:-help}" in
         build)
             build_dev

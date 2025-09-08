@@ -80,6 +80,24 @@ build_app() {
     fi
 }
 
+# Build debug version of the application in container
+build_debug() {
+    print_status "Building debug version of application in container..."
+    docker run --rm cisco-cli-interface-cisco-cli-dev:latest bash -c "cd /app && make clean && make debug"
+    
+    if [ $? -eq 0 ]; then
+        print_status "Copying debug binary to host build directory..."
+        mkdir -p build
+        docker run --rm cisco-cli-interface-cisco-cli-dev:latest cat /app/build/cisco-cli-interface > build/cisco-cli-interface
+        chmod +x build/cisco-cli-interface
+        print_success "Debug application built successfully and copied to ./build/cisco-cli-interface!"
+        print_status "Binary includes debug symbols and is ready for debugging in Cursor IDE"
+    else
+        print_error "Debug build failed!"
+        exit 1
+    fi
+}
+
 # Run tests in container
 run_tests() {
     print_status "Running unit tests in container..."
@@ -110,6 +128,7 @@ show_help() {
     echo "  build       Build the development environment"
     echo "  shell       Start an interactive development shell"
     echo "  compile     Build the application in container"
+    echo "  debug       Build debug version with symbols for IDE debugging"
     echo "  test        Run unit tests in container"
     echo "  clean       Clean up Docker resources"
     echo "  clean-tests Clean test artifacts"
@@ -119,15 +138,17 @@ show_help() {
     echo "  $0 build      # Build the Docker environment"
     echo "  $0 shell      # Start development shell"
     echo "  $0 compile    # Build the application"
+    echo "  $0 debug      # Build debug version for IDE debugging"
     echo "  $0 test       # Run unit tests"
     echo "  $0 clean-tests # Clean test artifacts"
     echo
     echo "Development Workflow:"
     echo "1. Run '$0 build' to set up the environment"
-    echo "2. Run '$0 shell' to start development"
-    echo "3. Edit code in your IDE (changes are synced)"
-    echo "4. Run '$0 compile' to build changes"
-    echo "5. Test your application"
+    echo "2. Run '$0 debug' to build debug version"
+    echo "3. Use Cursor IDE debugger with the built binary"
+    echo "4. Edit code in your IDE (changes are synced)"
+    echo "5. Run '$0 debug' again to rebuild with changes"
+    echo "6. Test your application"
 }
 
 # Main script logic
@@ -143,6 +164,9 @@ main() {
             ;;
         compile)
             build_app
+            ;;
+        debug)
+            build_debug
             ;;
         test)
             run_tests

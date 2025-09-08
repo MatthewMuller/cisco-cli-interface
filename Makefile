@@ -5,9 +5,19 @@ TARGET = build/cisco-cli-interface
 SOURCES = src/main.c src/serial.c src/ui.c src/cisco_commands.c src/file_tree.c
 OBJECTS = $(SOURCES:src/%.c=build/%.o)
 
-.PHONY: all clean
+# Debug and Release configurations
+DEBUG_CFLAGS = -Wall -Wextra -std=c99 -g -O0 -DDEBUG -Iinclude
+RELEASE_CFLAGS = -Wall -Wextra -std=c99 -O2 -DNDEBUG -Iinclude
 
-all: $(TARGET)
+.PHONY: all clean debug release
+
+all: debug
+
+debug: CFLAGS = $(DEBUG_CFLAGS)
+debug: $(TARGET)
+
+release: CFLAGS = $(RELEASE_CFLAGS)
+release: $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(TARGET) $(LIBS)

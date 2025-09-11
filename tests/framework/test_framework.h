@@ -1,20 +1,20 @@
 /**
- * @file test_framework_v2.h
+ * @file test_framework.h
  * @brief Streamlined C test framework for the Cisco CLI interface project
- * 
+ *
  * This header provides a modern testing framework with:
  * - Simple test registration and discovery
  * - Test fixtures for setup/teardown
  * - Test suites for organization
  * - Simplified mock framework
  * - Better assertion macros
- * 
+ *
  * @author Cisco CLI Interface Team
- * @version 2.0
+ * @version 1.0
  */
 
-#ifndef TEST_FRAMEWORK_V2_H
-#define TEST_FRAMEWORK_V2_H
+#ifndef TEST_FRAMEWORK_H
+#define TEST_FRAMEWORK_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,7 +49,7 @@ typedef struct test_suite {
 
 /**
  * @brief Define a test function
- * 
+ *
  * Usage: TEST(test_name) { ... }
  */
 #define TEST(name) \
@@ -57,7 +57,7 @@ typedef struct test_suite {
 
 /**
  * @brief Register a test function
- * 
+ *
  * Usage: TEST_REGISTER(test_function_name)
  */
 #define TEST_REGISTER(name) \
@@ -295,4 +295,4 @@ void suppress_stdout(void);
  */
 void restore_stdout(void);
 
-#endif // TEST_FRAMEWORK_V2_H
+#endif // TEST_FRAMEWORK_H

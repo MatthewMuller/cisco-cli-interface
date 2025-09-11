@@ -31,6 +31,14 @@
 #define MAX_DIRS 100
 #define SERIAL_BUFFER_SIZE 4096
 
+// Default configuration values
+#define DEFAULT_BAUD_RATE 9600
+#define DEFAULT_TIMEOUT 30
+#define MAX_BAUD_RATES 5
+#define FLASH_INIT_TIMEOUT 6
+#define COMMAND_TIMEOUT 3
+#define DELETE_TIMEOUT 3
+
 // File types
 typedef enum {
     FILE_TYPE_REGULAR,
@@ -142,4 +150,4 @@ int is_binary_file(const char *filename);
 void trim_whitespace(char *str);
 char *strdup_safe(const char *str);
 
-#endif // CISCO_CLI_H 
+#endif // CISCO_CLI_H

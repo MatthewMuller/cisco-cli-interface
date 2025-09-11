@@ -19,6 +19,12 @@
         "-g",
         "-O0"
     ],
+    "C_Cpp.default.browse": {
+        "path": [
+            "${workspaceFolder}/include",
+            "${workspaceFolder}/src"
+        ]
+    },
     "files.associations": {
         "*.h": "c",
         "*.c": "c"
@@ -36,5 +42,7 @@
     "debug.console.lineHeight": 22,
     "debug.inlineValues": true,
     "debug.showBreakpointsInOverviewRuler": true,
-    "debug.showInlineBreakpointCandidates": true
+    "debug.showInlineBreakpointCandidates": true,
+    "debug.allowBreakpointsEverywhere": true,
+    "debug.openDebug": "openOnDebugBreak"
 }

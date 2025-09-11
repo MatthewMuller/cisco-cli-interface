@@ -1,22 +1,16 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -g -Iinclude
+CFLAGS = -Wall -Wextra -std=c99 -g -Iinclude -MMD -MP
 LIBS = -lncurses -lpthread
 TARGET = build/cisco-cli-interface
 SOURCES = src/main.c src/serial.c src/ui.c src/cisco_commands.c src/file_tree.c
 OBJECTS = $(SOURCES:src/%.c=build/%.o)
+DEPENDS = $(OBJECTS:.o=.d)
 
-# Debug and Release configurations
-DEBUG_CFLAGS = -Wall -Wextra -std=c99 -g -O0 -DDEBUG -Iinclude
-RELEASE_CFLAGS = -Wall -Wextra -std=c99 -O2 -DNDEBUG -Iinclude
+.PHONY: all clean release install-deps help
 
-.PHONY: all clean debug release
+all: $(TARGET)
 
-all: debug
-
-debug: CFLAGS = $(DEBUG_CFLAGS)
-debug: $(TARGET)
-
-release: CFLAGS = $(RELEASE_CFLAGS)
+release: CFLAGS = -Wall -Wextra -std=c99 -O2 -DNDEBUG -Iinclude -MMD -MP
 release: $(TARGET)
 
 $(TARGET): $(OBJECTS)
@@ -27,9 +21,20 @@ build/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f $(OBJECTS) $(TARGET) $(DEPENDS)
 	rm -rf build
 
 install-deps:
 	sudo apt-get update
-	sudo apt-get install -y libncurses5-dev libncursesw5-dev
+	sudo apt-get install -y libncurses5-dev libncursesw5-dev build-essential
+
+help:
+	@echo "Available targets:"
+	@echo "  all         - Build debug version (default)"
+	@echo "  release     - Build optimized release version"
+	@echo "  clean       - Remove build artifacts"
+	@echo "  install-deps- Install system dependencies"
+	@echo "  help        - Show this help"
+
+# Include dependency files
+-include $(DEPENDS)

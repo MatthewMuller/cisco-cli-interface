@@ -19,16 +19,10 @@ A C application that provides an interactive interface to manage files and direc
 - ncurses development library
 - Serial port access (USB-to-serial adapter or built-in serial port)
 
-## Installation Options
+## Quick Start (Docker - Recommended)
 
-### Option 1: Docker Development Environment (Recommended)
+The easiest way to get started is using the provided Docker development environment:
 
-This approach provides an isolated development environment without installing dependencies on your system.
-
-**Prerequisites:**
-- Docker and Docker Compose installed
-
-**Setup:**
 ```bash
 # Clone the repository
 git clone <repository-url>
@@ -37,59 +31,55 @@ cd cisco-cli-interface
 # Build the development environment
 ./scripts/dev-setup.sh build
 
-# Start development shell
-./scripts/dev-setup.sh shell
+# Build the application
+./scripts/dev-setup.sh debug
+
+# Run the application
+./build/cisco-cli-interface /dev/ttyUSB0
+```
+
+## Development Environment
+
+### Docker Development Setup
+
+The project includes a complete Docker-based development environment that handles all dependencies automatically.
+
+**Available Commands:**
+```bash
+./scripts/dev-setup.sh build      # Build the Docker environment
+./scripts/dev-setup.sh shell      # Start interactive development shell
+./scripts/dev-setup.sh debug      # Build debug version (recommended for development)
+./scripts/dev-setup.sh compile    # Build release version
+./scripts/dev-setup.sh test       # Run unit tests
+./scripts/dev-setup.sh clean      # Clean up Docker resources
 ```
 
 **Development Workflow:**
-```bash
-# Build the application in container
-./scripts/dev-setup.sh compile
+1. `./scripts/dev-setup.sh build` - Set up the environment (first time only)
+2. `./scripts/dev-setup.sh debug` - Build debug version with symbols
+3. Edit code in your IDE (changes are synced automatically)
+4. `./scripts/dev-setup.sh debug` - Rebuild with changes
+5. Test your application
 
-# Run tests
-./scripts/dev-setup.sh test
+The debug build includes symbols for IDE debugging and outputs to `./build/cisco-cli-interface`.
 
-# Clean up when done
-./scripts/dev-setup.sh clean
-```
+### Manual Installation
 
-**Benefits:**
-- ✅ No system dependencies installed
-- ✅ Consistent environment across team members
-- ✅ Easy to clean up and recreate
-- ✅ Perfect for CI/CD integration
-
-### Option 2: Traditional Installation
-
-Install dependencies directly on your system.
-
-1. **Install dependencies:**
-   ```bash
-   sudo apt-get update
-   sudo apt-get install -y libncurses5-dev libncursesw5-dev build-essential
-   ```
-
-2. **Clone and build:**
-   ```bash
-   git clone <repository-url>
-   cd cisco-cli-interface
-   make
-   ```
-
-3. **Set up serial port permissions:**
-   ```bash
-   sudo usermod -a -G dialout $USER
-   # Log out and back in for changes to take effect
-   ```
-
-### Option 3: Manual Build
-
-Build the application manually using the Makefile.
+If you prefer to install dependencies directly on your system:
 
 ```bash
+# Install dependencies
+sudo apt-get update
+sudo apt-get install -y libncurses5-dev libncursesw5-dev build-essential
+
+# Clone and build
 git clone <repository-url>
 cd cisco-cli-interface
-make clean && make
+make debug
+
+# Set up serial port permissions
+sudo usermod -a -G dialout $USER
+# Log out and back in for changes to take effect
 ```
 
 ## Usage
@@ -97,27 +87,27 @@ make clean && make
 ### Basic Usage
 
 ```bash
-./cisco-cli-interface <serial_port> [baud_rate]
+./build/cisco-cli-interface <serial_port> [baud_rate]
 ```
 
 ### Examples
 
 ```bash
 # Connect to USB serial adapter at default 9600 baud
-./cisco-cli-interface /dev/ttyUSB0
+./build/cisco-cli-interface /dev/ttyUSB0
 
 # Connect to built-in serial port at 115200 baud
-./cisco-cli-interface /dev/ttyS0 115200
+./build/cisco-cli-interface /dev/ttyS0 115200
 
 # Connect to USB serial adapter at 19200 baud
-./cisco-cli-interface /dev/ttyUSB1 19200
+./build/cisco-cli-interface /dev/ttyUSB1 19200
 ```
 
 ### Switch Setup
 
 1. **Connect your computer to the Cisco switch** via serial cable or USB-to-serial adapter
-2. **Power on the switch** and interrupt the boot sequence (usually by pressing Ctrl+Break or similar)
-3. **Run the application** with the appropriate serial port
+2. **Run the application** with the appropriate serial port
+3. **Power on the switch** and interrupt the boot sequence (usually by pressing Mode button)
 4. **The application will automatically:**
    - Wait for the switch to show the flash_init prompt
    - Send the flash_init command
@@ -186,69 +176,76 @@ The application recognizes different file types and provides appropriate handlin
 
 ⚠️ **Important Safety Warnings:**
 
-1. **Backup your switch configuration** before using this tool
+1. **Backup your switch configuration** before using this tool if you want to preserve files on switch
 2. **Binary files (.bin, .tar, .pkg)** are critical for switch operation - be very careful when deleting these
 3. **Test on non-production equipment** first
 4. **Ensure proper serial connection** before running deletion operations
 
 ## Development
 
-### Building from Source
-
-```bash
-make clean
-make
-```
-
 ### Project Structure
 
-- `main.c` - Main application entry point and flow control
-- `serial.c` - Serial communication functions
-- `cisco_commands.c` - Cisco switch command interface
-- `file_tree.c` - File tree management and operations
-- `ui.c` - ncurses-based user interface
-- `cisco_cli.h` - Header file with all declarations
+- `src/main.c` - Main application entry point and flow control
+- `src/serial.c` - Serial communication functions
+- `src/cisco_commands.c` - Cisco switch command interface
+- `src/file_tree.c` - File tree management and operations
+- `src/ui.c` - ncurses-based user interface
+- `include/cisco_cli.h` - Header file with all declarations
 
-### Adding Features
+### Building
 
-The modular design makes it easy to add new features:
+The project uses a Makefile with debug and release configurations:
 
-1. **New commands** - Add to `cisco_commands.c`
-2. **UI improvements** - Modify `ui.c`
-3. **File operations** - Extend `file_tree.c`
+```bash
+make debug    # Build with debug symbols (default)
+make release  # Build optimized release version
+make clean    # Remove build artifacts
+```
 
-### Branching Strategy
+### Testing
 
-This project follows a structured branching strategy for organized development:
+Run the test suite using the development environment:
 
-#### Branch Types
-- `feat/description` - A new feature
-- `fix/description` - A bug fix
-- `docs/description` - Documentation only changes
-- `build/description` - Changes that affect the build system or external dependencies
-- `ci/description` - Changes to our CI configuration files and scripts
-- `perf/description` - A code change that improves performance
-- `refactor/description` - A code change that neither fixes a bug nor adds a feature
-- `style/description` - Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
-- `test/description` - Adding missing tests or correcting existing tests
+```bash
+./scripts/dev-setup.sh test
+```
 
-#### Workflow
-1. Create feature branch from `main`
-2. Make changes with conventional commit messages
-3. Submit pull request to `main`
-5. Feature branch merged to `main` for production releases
+
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Contributing
+## Contributing to Repo
+
+This section talks about how you can contribute to the project!
+
+### Branching Strategy
+
+This project follows a trunk-based development approach:
+
+- **`main`** - Production-ready code
+- **`develop`** - Integration branch for CI/CD testing (no PRs required)
+- **Feature branches** - Branched directly from `main` using conventional naming:
+  - `feat/description` - New features
+  - `fix/description` - Bug fixes
+  - `refactor/description` - Code refactoring
+  - `docs/description` - Documentation changes
+  - `test/description` - Test improvements
+
+### Workflow
+1. Create feature branch from `main`
+2. Make changes with conventional commit messages
+3. Submit pull request to `main`
+4. Use `develop` branch for CI/CD testing without PRs
+
+### How to Contribute
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch from `main`
 3. Make your changes
 4. Test thoroughly
-5. Submit a pull request
+5. Submit a pull request to `main`
 
 ## Support
 

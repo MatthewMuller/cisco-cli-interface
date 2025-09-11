@@ -29,10 +29,10 @@ git clone <repository-url>
 cd cisco-cli-interface
 
 # Build the development environment
-./scripts/dev-setup.sh build
+./scripts/docker-dev.sh build
 
 # Build the application
-./scripts/dev-setup.sh debug
+./scripts/docker-dev.sh debug
 
 # Run the application
 ./build/cisco-cli-interface /dev/ttyUSB0
@@ -46,19 +46,19 @@ The project includes a complete Docker-based development environment that handle
 
 **Available Commands:**
 ```bash
-./scripts/dev-setup.sh build      # Build the Docker environment
-./scripts/dev-setup.sh shell      # Start interactive development shell
-./scripts/dev-setup.sh debug      # Build debug version (recommended for development)
-./scripts/dev-setup.sh compile    # Build release version
-./scripts/dev-setup.sh test       # Run unit tests
-./scripts/dev-setup.sh clean      # Clean up Docker resources
+./scripts/docker-dev.sh build      # Build the Docker environment
+./scripts/docker-dev.sh shell      # Start interactive development shell
+./scripts/docker-dev.sh debug      # Build debug version (recommended for development)
+./scripts/docker-dev.sh compile    # Build release version
+./scripts/docker-dev.sh test       # Run unit tests
+./scripts/docker-dev.sh clean      # Clean up Docker resources
 ```
 
 **Development Workflow:**
-1. `./scripts/dev-setup.sh build` - Set up the environment (first time only)
-2. `./scripts/dev-setup.sh debug` - Build debug version with symbols
+1. `./scripts/docker-dev.sh build` - Set up the environment (first time only)
+2. `./scripts/docker-dev.sh debug` - Build debug version with symbols
 3. Edit code in your IDE (changes are synced automatically)
-4. `./scripts/dev-setup.sh debug` - Rebuild with changes
+4. `./scripts/docker-dev.sh debug` - Rebuild with changes
 5. Test your application
 
 The debug build includes symbols for IDE debugging and outputs to `./build/cisco-cli-interface`.
@@ -207,7 +207,7 @@ make clean    # Remove build artifacts
 Run the test suite using the development environment:
 
 ```bash
-./scripts/dev-setup.sh test
+./scripts/docker-dev.sh test
 ```
 
 

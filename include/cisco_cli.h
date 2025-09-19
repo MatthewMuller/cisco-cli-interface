@@ -125,13 +125,12 @@ int cisco_delete_directory(serial_conn_t *conn, const char *dir_path, int timeou
 dir_node_t *file_tree_create(const char *name, const char *path, file_type_t type);
 void file_tree_add_child(dir_node_t *parent, dir_node_t *child);
 void file_tree_build_recursive(serial_conn_t *conn, dir_node_t *parent, const char *path);
-void file_tree_build(serial_conn_t *conn, dir_node_t **root);
+int file_tree_build(serial_conn_t *conn, dir_node_t **root);
 void file_tree_free(dir_node_t *node);
 void file_tree_select(dir_node_t *node, int selected);
 int file_tree_count_selected(dir_node_t *node);
 void file_tree_delete_selected_recursive(serial_conn_t *conn, dir_node_t *node, int *success_count, int *fail_count);
-void file_tree_delete_selected(serial_conn_t *conn, dir_node_t *node);
-int file_tree_get_flat_list_recursive(dir_node_t *node, dir_node_t **list, int max_count, int *current_count);
+int file_tree_delete_selected(serial_conn_t *conn, dir_node_t *node, int *success_count, int *fail_count);
 int file_tree_get_flat_list(dir_node_t *node, dir_node_t **list, int max_count);
 
 // UI functions

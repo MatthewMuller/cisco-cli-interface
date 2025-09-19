@@ -79,16 +79,17 @@ void file_tree_build_recursive(serial_conn_t *conn, dir_node_t *parent, const ch
 }
 
 // Initializes and builds the root file tree structure
-void file_tree_build(serial_conn_t *conn, dir_node_t **root) {
+int file_tree_build(serial_conn_t *conn, dir_node_t **root) {
     // Validate input parameters
-    if (!root) return;
+    if (!root) return -1;
 
     // Create root node
     *root = file_tree_create("flash:/", "flash:/", FILE_TYPE_DIRECTORY);
-    if (!*root) return;
+    if (!*root) return -1;
 
     // Build the tree for the root directory only
     file_tree_build_recursive(conn, *root, "flash:/");
+    return 0;  // Success
 }
 
 // Recursively frees all memory allocated for the file tree
@@ -171,18 +172,23 @@ void file_tree_delete_selected_recursive(serial_conn_t *conn, dir_node_t *node, 
     }
 }
 
-// Deletes all selected files and directories and reports results
-void file_tree_delete_selected(serial_conn_t *conn, dir_node_t *node) {
-    int success_count = 0, fail_count = 0;
+// Deletes all selected files and directories and returns results
+int file_tree_delete_selected(serial_conn_t *conn, dir_node_t *node, int *success_count, int *fail_count) {
+    if (!conn || !node) return -1;
 
-    file_tree_delete_selected_recursive(conn, node, &success_count, &fail_count);
+    int local_success = 0, local_fail = 0;
 
-    // Print results
-    printf("Deletion complete: %d successful, %d failed\n", success_count, fail_count);
+    file_tree_delete_selected_recursive(conn, node, &local_success, &local_fail);
+
+    // Set output parameters if provided
+    if (success_count) *success_count = local_success;
+    if (fail_count) *fail_count = local_fail;
+
+    return 0;  // Success
 }
 
 // Recursively builds a flat list of visible nodes for UI display
-int file_tree_get_flat_list_recursive(dir_node_t *node, dir_node_t **list, int max_count, int *current_count) {
+static int file_tree_get_flat_list_recursive(dir_node_t *node, dir_node_t **list, int max_count, int *current_count) {
     if (!node || !list || !current_count || *current_count >= max_count) return 0;
 
     // Always include the current node in the list
@@ -203,6 +209,8 @@ int file_tree_get_flat_list_recursive(dir_node_t *node, dir_node_t **list, int m
 
 // Creates a flat list of all visible nodes in the tree for UI rendering
 int file_tree_get_flat_list(dir_node_t *node, dir_node_t **list, int max_count) {
+    if (!node || !list || max_count <= 0) return 0;
+
     int count = 0;
     return file_tree_get_flat_list_recursive(node, list, max_count, &count);
 }

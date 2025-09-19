@@ -144,8 +144,12 @@ int main(int argc, char *argv[]) {
                 // Build file tree if not already built
                 if (!app.file_tree) {
                     ui_draw_status(&app, "Building file tree...");
-                    file_tree_build(&app.serial, &app.file_tree);
-                    ui_draw_status(&app, "File tree built");
+                    int result = file_tree_build(&app.serial, &app.file_tree);
+                    if (result == 0) {
+                        ui_draw_status(&app, "File tree built");
+                    } else {
+                        ui_draw_status(&app, "Failed to build file tree");
+                    }
                 }
                 break;
 
@@ -157,8 +161,12 @@ int main(int argc, char *argv[]) {
                 // Build file tree if not already built
                 if (!app.file_tree) {
                     ui_draw_status(&app, "Building file tree...");
-                    file_tree_build(&app.serial, &app.file_tree);
-                    ui_draw_status(&app, "File tree built");
+                    int result = file_tree_build(&app.serial, &app.file_tree);
+                    if (result == 0) {
+                        ui_draw_status(&app, "File tree built");
+                    } else {
+                        ui_draw_status(&app, "Failed to build file tree");
+                    }
                 }
                 break;
 
@@ -175,8 +183,17 @@ int main(int argc, char *argv[]) {
 
                         if (confirmed) {
                             ui_draw_status(&app, "Deleting selected items...");
-                            file_tree_delete_selected(&app.serial, app.file_tree);
-                            ui_draw_status(&app, "Deletion complete");
+                            int success_count = 0, fail_count = 0;
+                            int result = file_tree_delete_selected(&app.serial, app.file_tree, &success_count, &fail_count);
+                            if (result == 0) {
+                                char status_msg[256];
+                                snprintf(status_msg, sizeof(status_msg), 
+                                        "Deletion complete: %d successful, %d failed", 
+                                        success_count, fail_count);
+                                ui_draw_status(&app, status_msg);
+                            } else {
+                                ui_draw_status(&app, "Deletion failed");
+                            }
 
                             // Refresh file tree
                             file_tree_free(app.file_tree);
@@ -194,8 +211,12 @@ int main(int argc, char *argv[]) {
                     app.file_tree = NULL;
                 }
                 ui_draw_status(&app, "Refreshing file tree...");
-                file_tree_build(&app.serial, &app.file_tree);
-                ui_draw_status(&app, "File tree refreshed");
+                int result = file_tree_build(&app.serial, &app.file_tree);
+                if (result == 0) {
+                    ui_draw_status(&app, "File tree refreshed");
+                } else {
+                    ui_draw_status(&app, "Failed to refresh file tree");
+                }
                 break;
 
             case 5: // Exit

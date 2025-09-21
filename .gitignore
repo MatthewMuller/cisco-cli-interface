@@ -40,6 +40,16 @@ build/cisco-cli-interface
 # Test executables
 test_cisco_commands
 test_file_tree
+test_file_tree_add_child
+test_file_tree_build
+test_file_tree_build_recursive
+test_file_tree_count_selected
+test_file_tree_delete_selected
+test_file_tree_delete_selected_recursive
+test_file_tree_free
+test_file_tree_get_flat_list
+test_file_tree_select
+test_file_tree_create
 
 # Build directory
 scripts/build/

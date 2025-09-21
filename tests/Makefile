@@ -1,35 +1,41 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99 -I../include
 LIBS = -lpthread -Wl,--gc-sections
+
+# Test executables
 TEST_EXEC = test_cisco_commands
-FILE_TREE_TEST_EXEC = test_file_tree
+FILE_TREE_TESTS = test_file_tree_create test_file_tree_add_child test_file_tree_free \
+                  test_file_tree_select test_file_tree_count_selected test_file_tree_delete_selected_recursive \
+                  test_file_tree_delete_selected test_file_tree_build_recursive test_file_tree_build \
+                  test_file_tree_get_flat_list
 
-all: $(TEST_EXEC) $(FILE_TREE_TEST_EXEC)
+# Common dependencies
+FRAMEWORK_DEPS = framework/test_framework.o
+SRC_DEPS = ../src/file_tree.o ../src/cisco_commands.o
 
-$(TEST_EXEC): framework/test_framework.o unit/test_cisco_commands.o ../src/cisco_commands.o
+all: $(TEST_EXEC) $(FILE_TREE_TESTS)
+
+# Main test executable
+$(TEST_EXEC): $(FRAMEWORK_DEPS) unit/test_cisco_commands.o $(SRC_DEPS)
 	$(CC) $^ -o $@ $(LIBS)
 
-$(FILE_TREE_TEST_EXEC): framework/test_framework.o unit/test_file_tree.o ../src/file_tree.o ../src/cisco_commands.o
+# File tree tests (pattern rule)
+$(FILE_TREE_TESTS): %: $(FRAMEWORK_DEPS) unit/%.o $(SRC_DEPS)
 	$(CC) $^ -o $@ $(LIBS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-test: $(TEST_EXEC) $(FILE_TREE_TEST_EXEC)
-	./$(TEST_EXEC) && ./$(FILE_TREE_TEST_EXEC)
+test: $(TEST_EXEC) $(FILE_TREE_TESTS)
+	./$(TEST_EXEC) && for t in $(FILE_TREE_TESTS); do echo "Running $$t..."; ./$$t; done
 
-test-verbose: $(TEST_EXEC) $(FILE_TREE_TEST_EXEC)
-	./$(TEST_EXEC) --verbose && ./$(FILE_TREE_TEST_EXEC) --verbose
+test-verbose: $(TEST_EXEC) $(FILE_TREE_TESTS)
+	./$(TEST_EXEC) --verbose && for t in $(FILE_TREE_TESTS); do echo "Running $$t..."; ./$$t --verbose; done
 
 clean:
-	rm -f framework/*.o unit/*.o ../src/*.o $(TEST_EXEC) $(FILE_TREE_TEST_EXEC)
+	rm -f framework/*.o unit/*.o ../src/*.o $(TEST_EXEC) $(FILE_TREE_TESTS)
 
 help:
-	@echo "Available targets:"
-	@echo "  all          - Build all test executables"
-	@echo "  test         - Run all tests"
-	@echo "  test-verbose - Run tests with verbose output"
-	@echo "  clean        - Remove test artifacts"
-	@echo "  help         - Show this help"
+	@echo "Targets: all test test-verbose clean help"
 
 .PHONY: all test test-verbose clean help

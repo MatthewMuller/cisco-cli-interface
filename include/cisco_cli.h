@@ -39,6 +39,13 @@
 #define COMMAND_TIMEOUT 3
 #define DELETE_TIMEOUT 3
 
+// Error codes for file tree functions
+#define FILE_TREE_SUCCESS 0
+#define FILE_TREE_ERROR_NULL_PARAM -1
+#define FILE_TREE_ERROR_MEMORY_ALLOC -2
+#define FILE_TREE_ERROR_INVALID_PARAM -3
+#define FILE_TREE_ERROR_OPERATION_FAILED -4
+
 // File types
 typedef enum {
     FILE_TYPE_REGULAR,
@@ -122,16 +129,16 @@ int cisco_delete_file(serial_conn_t *conn, const char *file_path, int timeout);
 int cisco_delete_directory(serial_conn_t *conn, const char *dir_path, int timeout);
 
 // File tree management
-dir_node_t *file_tree_create(const char *name, const char *path, file_type_t type);
-void file_tree_add_child(dir_node_t *parent, dir_node_t *child);
-void file_tree_build_recursive(serial_conn_t *conn, dir_node_t *parent, const char *path);
+int file_tree_create(const char *name, const char *path, file_type_t type, dir_node_t **node);
+int file_tree_add_child(dir_node_t *parent, dir_node_t *child);
+int file_tree_build_recursive(serial_conn_t *conn, dir_node_t *parent, const char *path);
 int file_tree_build(serial_conn_t *conn, dir_node_t **root);
-void file_tree_free(dir_node_t *node);
-void file_tree_select(dir_node_t *node, int selected);
-int file_tree_count_selected(dir_node_t *node);
-void file_tree_delete_selected_recursive(serial_conn_t *conn, dir_node_t *node, int *success_count, int *fail_count);
+int file_tree_free(dir_node_t *node);
+int file_tree_select(dir_node_t *node, int selected);
+int file_tree_count_selected(dir_node_t *node, int *count);
+int file_tree_delete_selected_recursive(serial_conn_t *conn, dir_node_t *node, int *success_count, int *fail_count);
 int file_tree_delete_selected(serial_conn_t *conn, dir_node_t *node, int *success_count, int *fail_count);
-int file_tree_get_flat_list(dir_node_t *node, dir_node_t **list, int max_count);
+int file_tree_get_flat_list(dir_node_t *node, dir_node_t **list, int max_count, int *count);
 
 // UI functions
 void ui_init(void);

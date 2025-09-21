@@ -1,216 +1,259 @@
 #include "cisco_cli.h"
 
 // Creates a new directory tree node with the given name, path, and type
-dir_node_t *file_tree_create(const char *name, const char *path, file_type_t type) {
-    dir_node_t *node = malloc(sizeof(dir_node_t));
-    if (!node) return NULL;
+int file_tree_create(const char *name, const char *path, file_type_t type,
+                     dir_node_t **node) {
+  if (!node)
+    return FILE_TREE_ERROR_NULL_PARAM;
 
-    // Handle NULL parameters safely
-    if (name) {
-        strncpy(node->name, name, MAX_PATH_LEN - 1);
-    } else {
-        node->name[0] = '\0';
-    }
-    node->name[MAX_PATH_LEN - 1] = '\0';
+  *node = malloc(sizeof(dir_node_t));
+  if (!*node)
+    return FILE_TREE_ERROR_MEMORY_ALLOC;
 
-    if (path) {
-        strncpy(node->path, path, MAX_PATH_LEN - 1);
-    } else {
-        node->path[0] = '\0';
-    }
-    node->path[MAX_PATH_LEN - 1] = '\0';
+  // Handle NULL parameters safely
+  if (name) {
+    strncpy((*node)->name, name, MAX_PATH_LEN - 1);
+  } else {
+    (*node)->name[0] = '\0';
+  }
+  (*node)->name[MAX_PATH_LEN - 1] = '\0';
 
-    node->type = type;
-    node->selected = 0;
-    node->expanded = 0;
-    node->level = 0;
-    node->parent = NULL;
-    node->children = NULL;
-    node->next = NULL;
+  if (path) {
+    strncpy((*node)->path, path, MAX_PATH_LEN - 1);
+  } else {
+    (*node)->path[0] = '\0';
+  }
+  (*node)->path[MAX_PATH_LEN - 1] = '\0';
 
-    return node;
+  (*node)->type = type;
+  (*node)->selected = 0;
+  (*node)->expanded = 0;
+  (*node)->level = 0;
+  (*node)->parent = NULL;
+  (*node)->children = NULL;
+  (*node)->next = NULL;
+
+  return FILE_TREE_SUCCESS;
 }
 
 // Adds a child node to a parent node in the tree
-void file_tree_add_child(dir_node_t *parent, dir_node_t *child) {
-    if (!parent || !child) return;
+int file_tree_add_child(dir_node_t *parent, dir_node_t *child) {
+  if (!parent || !child)
+    return FILE_TREE_ERROR_NULL_PARAM;
 
-    child->parent = parent;
-    child->level = parent->level + 1;
+  child->parent = parent;
+  child->level = parent->level + 1;
 
-    if (parent->children == NULL) {
-        parent->children = child;
-    } else {
-        dir_node_t *current = parent->children;
-        while (current->next != NULL) {
-            current = current->next;
-        }
-        current->next = child;
+  if (parent->children == NULL) {
+    parent->children = child;
+  } else {
+    dir_node_t *current = parent->children;
+    while (current->next != NULL) {
+      current = current->next;
     }
+    current->next = child;
+  }
+
+  return FILE_TREE_SUCCESS;
 }
 
-// Recursively builds the file tree by fetching directory listings from the device
-void file_tree_build_recursive(serial_conn_t *conn, dir_node_t *parent, const char *path) {
-    // Validate input parameters
-    if (!conn || !parent || !path) {
-        return;
+// Recursively builds the file tree by fetching directory listings from the
+// device
+int file_tree_build_recursive(serial_conn_t *conn, dir_node_t *parent,
+                              const char *path) {
+  // Validate input parameters
+  if (!conn || !parent || !path) {
+    return FILE_TREE_ERROR_NULL_PARAM;
+  }
+
+  file_entry_t *files = NULL;
+  int file_count =
+      cisco_get_directory_listing(conn, path, &files, COMMAND_TIMEOUT);
+
+  if (file_count <= 0)
+    return FILE_TREE_SUCCESS; // No files found is not an error
+
+  file_entry_t *current = files;
+  while (current != NULL) {
+    // Create node for this file/directory
+    dir_node_t *node = NULL;
+    int result = file_tree_create(current->name, current->full_path,
+                                  current->type, &node);
+    if (result == FILE_TREE_SUCCESS && node) {
+      file_tree_add_child(parent, node);
+
+      // Note: We don't recursively explore directories by default
+      // to avoid infinite loops. The user can expand directories manually.
     }
 
-    file_entry_t *files = NULL;
-    int file_count = cisco_get_directory_listing(conn, path, &files, COMMAND_TIMEOUT);
+    file_entry_t *next = current->next;
+    free(current);
+    current = next;
+  }
 
-    if (file_count <= 0) return;
-
-    file_entry_t *current = files;
-    while (current != NULL) {
-        // Create node for this file/directory
-        dir_node_t *node = file_tree_create(current->name, current->full_path, current->type);
-        if (node) {
-            file_tree_add_child(parent, node);
-
-            // Note: We don't recursively explore directories by default
-            // to avoid infinite loops. The user can expand directories manually.
-        }
-
-        file_entry_t *next = current->next;
-        free(current);
-        current = next;
-    }
+  return FILE_TREE_SUCCESS;
 }
 
 // Initializes and builds the root file tree structure
 int file_tree_build(serial_conn_t *conn, dir_node_t **root) {
-    // Validate input parameters
-    if (!root) return -1;
+  // Validate input parameters
+  if (!root)
+    return FILE_TREE_ERROR_NULL_PARAM;
 
-    // Create root node
-    *root = file_tree_create("flash:/", "flash:/", FILE_TYPE_DIRECTORY);
-    if (!*root) return -1;
+  // Create root node
+  int result =
+      file_tree_create("flash:/", "flash:/", FILE_TYPE_DIRECTORY, root);
+  if (result != FILE_TREE_SUCCESS)
+    return result;
 
-    // Build the tree for the root directory only
-    file_tree_build_recursive(conn, *root, "flash:/");
-    return 0;  // Success
+  // Build the tree for the root directory only
+  return file_tree_build_recursive(conn, *root, "flash:/");
 }
 
 // Recursively frees all memory allocated for the file tree
-void file_tree_free(dir_node_t *node) {
-    if (!node) return;
+int file_tree_free(dir_node_t *node) {
+  if (!node)
+    return FILE_TREE_ERROR_NULL_PARAM;
 
-    // Free children first
-    dir_node_t *child = node->children;
-    while (child != NULL) {
-        dir_node_t *next = child->next;
-        file_tree_free(child);
-        child = next;
-    }
+  // Free children first
+  dir_node_t *child = node->children;
+  while (child != NULL) {
+    dir_node_t *next = child->next;
+    file_tree_free(child);
+    child = next;
+  }
 
-    // Free this node
-    free(node);
+  // Free this node
+  free(node);
+  return FILE_TREE_SUCCESS;
 }
 
 // Sets the selection state of a node and all its children
-void file_tree_select(dir_node_t *node, int selected) {
-    if (!node) return;
+int file_tree_select(dir_node_t *node, int selected) {
+  if (!node)
+    return FILE_TREE_ERROR_NULL_PARAM;
 
-    node->selected = selected;
+  node->selected = selected;
 
-    // If selecting a directory, select all children too
-    if (node->type == FILE_TYPE_DIRECTORY) {
-        dir_node_t *child = node->children;
-        while (child != NULL) {
-            file_tree_select(child, selected);
-            child = child->next;
-        }
+  // If selecting a directory, select all children too
+  if (node->type == FILE_TYPE_DIRECTORY) {
+    dir_node_t *child = node->children;
+    while (child != NULL) {
+      file_tree_select(child, selected);
+      child = child->next;
     }
+  }
+
+  return FILE_TREE_SUCCESS;
 }
 
 // Counts the total number of selected nodes in the tree
-int file_tree_count_selected(dir_node_t *node) {
-    if (!node) return 0;
+int file_tree_count_selected(dir_node_t *node, int *count) {
+  if (!node || !count)
+    return FILE_TREE_ERROR_NULL_PARAM;
 
-    int count = node->selected ? 1 : 0;
+  *count = node->selected ? 1 : 0;
 
-    // Count children
-    dir_node_t *child = node->children;
-    while (child != NULL) {
-        count += file_tree_count_selected(child);
-        child = child->next;
-    }
+  // Count children
+  dir_node_t *child = node->children;
+  while (child != NULL) {
+    int child_count = 0;
+    file_tree_count_selected(child, &child_count);
+    *count += child_count;
+    child = child->next;
+  }
 
-    return count;
+  return FILE_TREE_SUCCESS;
 }
 
 // Recursively deletes selected files and directories from the device
-void file_tree_delete_selected_recursive(serial_conn_t *conn, dir_node_t *node, int *success_count, int *fail_count) {
-    if (!node) return;
+int file_tree_delete_selected_recursive(serial_conn_t *conn, dir_node_t *node,
+                                        int *success_count, int *fail_count) {
+  if (!node)
+    return FILE_TREE_ERROR_NULL_PARAM;
 
-    // Delete children first (for directories)
+  // Delete children first (for directories)
+  if (node->type == FILE_TYPE_DIRECTORY) {
+    dir_node_t *child = node->children;
+    while (child != NULL) {
+      dir_node_t *next = child->next;
+      file_tree_delete_selected_recursive(conn, child, success_count,
+                                          fail_count);
+      child = next;
+    }
+  }
+
+  // Delete this node if selected
+  if (node->selected) {
+    int result;
+
     if (node->type == FILE_TYPE_DIRECTORY) {
-        dir_node_t *child = node->children;
-        while (child != NULL) {
-            dir_node_t *next = child->next;
-            file_tree_delete_selected_recursive(conn, child, success_count, fail_count);
-            child = next;
-        }
+      result = cisco_delete_directory(conn, node->path, DELETE_TIMEOUT);
+    } else {
+      result = cisco_delete_file(conn, node->path, DELETE_TIMEOUT);
     }
 
-    // Delete this node if selected
-    if (node->selected) {
-        int result;
-
-        if (node->type == FILE_TYPE_DIRECTORY) {
-            result = cisco_delete_directory(conn, node->path, DELETE_TIMEOUT);
-        } else {
-            result = cisco_delete_file(conn, node->path, DELETE_TIMEOUT);
-        }
-
-        if (result == 0 && success_count != NULL) {
-            (*success_count)++;
-        } else if (result != 0 && fail_count != NULL) {
-            (*fail_count)++;
-        }
+    if (result == 0 && success_count != NULL) {
+      (*success_count)++;
+    } else if (result != 0 && fail_count != NULL) {
+      (*fail_count)++;
     }
+  }
+
+  return FILE_TREE_SUCCESS;
 }
 
 // Deletes all selected files and directories and returns results
-int file_tree_delete_selected(serial_conn_t *conn, dir_node_t *node, int *success_count, int *fail_count) {
-    if (!conn || !node) return -1;
+int file_tree_delete_selected(serial_conn_t *conn, dir_node_t *node,
+                              int *success_count, int *fail_count) {
+  if (!conn || !node)
+    return FILE_TREE_ERROR_NULL_PARAM;
 
-    int local_success = 0, local_fail = 0;
+  int local_success = 0, local_fail = 0;
 
-    file_tree_delete_selected_recursive(conn, node, &local_success, &local_fail);
+  int result = file_tree_delete_selected_recursive(conn, node, &local_success,
+                                                   &local_fail);
+  if (result != FILE_TREE_SUCCESS)
+    return result;
 
-    // Set output parameters if provided
-    if (success_count) *success_count = local_success;
-    if (fail_count) *fail_count = local_fail;
+  // Set output parameters if provided
+  if (success_count)
+    *success_count = local_success;
+  if (fail_count)
+    *fail_count = local_fail;
 
-    return 0;  // Success
+  return FILE_TREE_SUCCESS;
 }
 
 // Recursively builds a flat list of visible nodes for UI display
-static int file_tree_get_flat_list_recursive(dir_node_t *node, dir_node_t **list, int max_count, int *current_count) {
-    if (!node || !list || !current_count || *current_count >= max_count) return 0;
+static int file_tree_get_flat_list_recursive(dir_node_t *node,
+                                             dir_node_t **list, int max_count,
+                                             int *current_count) {
+  if (!node || !list || !current_count || *current_count >= max_count)
+    return FILE_TREE_ERROR_NULL_PARAM;
 
-    // Always include the current node in the list
-    list[*current_count] = node;
-    (*current_count)++;
+  // Always include the current node in the list
+  list[*current_count] = node;
+  (*current_count)++;
 
-    // Only include children if the current node is expanded
-    if (node->expanded) {
-        dir_node_t *child = node->children;
-        while (child != NULL && *current_count < max_count) {
-            file_tree_get_flat_list_recursive(child, list, max_count, current_count);
-            child = child->next;
-        }
+  // Only include children if the current node is expanded
+  if (node->expanded) {
+    dir_node_t *child = node->children;
+    while (child != NULL && *current_count < max_count) {
+      file_tree_get_flat_list_recursive(child, list, max_count, current_count);
+      child = child->next;
     }
+  }
 
-    return *current_count;
+  return FILE_TREE_SUCCESS;
 }
 
 // Creates a flat list of all visible nodes in the tree for UI rendering
-int file_tree_get_flat_list(dir_node_t *node, dir_node_t **list, int max_count) {
-    if (!node || !list || max_count <= 0) return 0;
+int file_tree_get_flat_list(dir_node_t *node, dir_node_t **list, int max_count,
+                            int *count) {
+  if (!node || !list || !count || max_count <= 0)
+    return FILE_TREE_ERROR_NULL_PARAM;
 
-    int count = 0;
-    return file_tree_get_flat_list_recursive(node, list, max_count, &count);
+  *count = 0;
+  return file_tree_get_flat_list_recursive(node, list, max_count, count);
 }
